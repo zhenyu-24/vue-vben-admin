@@ -13,5 +13,9 @@ export const overridesPreferences = defineOverridesPreferences({
   app: {
     name: import.meta.env.VITE_APP_TITLE,
   },
+  logo: {
+    source: 'https://unpkg.com/@vbenjs/static-source@0.1.7/source/logo-v1.webp',
+    sourceDark: 'https://unpkg.com/@vbenjs/static-source@0.1.7/source/logo-v1-dark.webp',
+  },
   copyright: appCopyrightPreferences,
 });

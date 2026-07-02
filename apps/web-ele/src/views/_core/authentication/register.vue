@@ -58,6 +58,28 @@ const formSchema = computed((): VbenFormSchema[] => {
       label: $t('authentication.confirmPassword'),
     },
     {
+      component: 'VbenInput',
+      componentProps: {
+        placeholder: '请输入邮箱（可选）',
+      },
+      fieldName: 'email',
+      label: '邮箱（可选）',
+      rules: z.string().email('邮箱格式不正确').optional().or(z.literal('')),
+    },
+    {
+      component: 'VbenInput',
+      componentProps: {
+        placeholder: '请输入手机号（可选）',
+      },
+      fieldName: 'phone',
+      label: '手机号（可选）',
+      rules: z
+        .string()
+        .regex(/^1[3-9]\d{9}$/, '手机号格式不正确')
+        .optional()
+        .or(z.literal('')),
+    },
+    {
       component: 'VbenCheckbox',
       fieldName: 'agreePolicy',
       renderComponentContent: () => ({
@@ -87,6 +109,8 @@ function handleSubmit(value: Recordable<any>) {
   authStore.register(value, () => {
     // 注册成功后跳转到登录页
     window.location.href = '/auth/login';
+  }).catch(() => {
+    // 错误已在拦截器中展示，此处静默处理防止 unhandled rejection
   });
 }
 </script>

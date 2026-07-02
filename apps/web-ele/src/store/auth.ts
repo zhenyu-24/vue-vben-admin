@@ -31,6 +31,13 @@ export const useAuthStore = defineStore('auth', () => {
    * 将 fba 后端用户信息映射为 Vben Admin 的 UserInfo 格式
    */
   function mapUserInfo(raw: Record<string, any>, token?: string): UserInfo {
+    // 提取角色
+    const rawRoles: string[] = Array.isArray(raw.roles) 
+      ? raw.roles.map((r: any) => r.name ?? r) 
+      : [];
+    
+    const roles = [...rawRoles];
+    // 管理员看 is_super_admin
     return {
       ...raw,
       userId: String(raw.id ?? raw.userId ?? ''),
@@ -38,6 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
       desc: raw.desc ?? '',
       homePath: raw.homePath ?? '',
       token: token ?? raw.token ?? '',
+      roles
     };
   }
 
@@ -76,6 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         // 映射为 Vben Admin 的 UserInfo 格式
         userInfo = mapUserInfo(fetchUserInfoResult, accessToken);
+        console.log("userInfo:", userInfo);
         userStore.setUserInfo(userInfo);
         accessStore.setAccessCodes(accessCodes);
 
@@ -110,13 +119,15 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(params: Recordable<any>, onSuccess?: () => void) {
     try {
       registerLoading.value = true;
-      await registerApi({
+      // 只发送非空的可选字段，避免向后端发送空字符串
+      const registerData: Record<string, any> = {
         username: params.username,
         password: params.password,
-        nickname: params.nickname,
-        email: params.email,
-        phone: params.phone,
-      });
+      };
+      if (params.email) registerData.email = params.email;
+      if (params.phone) registerData.phone = params.phone;
+      if (params.nickname) registerData.nickname = params.nickname;
+      await registerApi(registerData);
       ElMessage.success($t('authentication.registerSuccess') || '注册成功');
       onSuccess?.();
     } finally {

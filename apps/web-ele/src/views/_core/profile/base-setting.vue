@@ -7,7 +7,7 @@ import { ProfileBaseSetting } from '@vben/common-ui';
 
 import { ElMessage } from 'element-plus';
 
-import { getUserInfoApi } from '#/api';
+import { getUserInfoApi, updateMyInfoApi } from '#/api';
 
 const profileBaseSettingRef = ref();
 
@@ -16,49 +16,47 @@ const formSchema = computed((): VbenFormSchema[] => {
     {
       fieldName: 'realName',
       component: 'Input',
-      label: '姓名',
-      dynamicDisabled: () => true,
+      label: '昵称',
     },
-    {
-      fieldName: 'username',
-      component: 'Input',
-      label: '用户名',
-      dynamicDisabled: () => true,
-    },
-    {
+{
       fieldName: 'email',
       component: 'Input',
       label: '邮箱',
-      dynamicDisabled: () => true,
     },
     {
       fieldName: 'phone',
       component: 'Input',
       label: '手机号',
-      dynamicDisabled: () => true,
     },
+
   ];
 });
 
 onMounted(async () => {
   const data = await getUserInfoApi();
-  // 将 fba 后端字段映射为表单显示
   profileBaseSettingRef.value.getFormApi().setValues({
     realName: data.nickname ?? data.realName ?? '',
-    username: data.username ?? '',
     email: data.email ?? '',
     phone: data.phone ?? '',
+
   });
 });
 
-function handleSubmit() {
-  ElMessage.info('基本信息为只读，请在系统管理页面修改');
+async function handleSubmit(values: Record<string, any>) {
+  try {
+    const updateData: Record<string, any> = {};
+    if (values.realName) updateData.nickname = values.realName;
+    if (values.email) updateData.email = values.email;
+    if (values.phone) updateData.phone = values.phone;
+    if (Object.keys(updateData).length === 0) return;
+    await updateMyInfoApi(updateData);
+    ElMessage.success('基本信息更新成功');
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || '更新失败';
+    ElMessage.error(msg);
+  }
 }
 </script>
 <template>
-  <ProfileBaseSetting
-    ref="profileBaseSettingRef"
-    :form-schema="formSchema"
-    @submit="handleSubmit"
-  />
+  <ProfileBaseSetting ref="profileBaseSettingRef" :form-schema="formSchema" @submit="handleSubmit" />
 </template>
