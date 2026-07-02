@@ -2,14 +2,14 @@
 import type { VbenFormSchema } from '@vben/common-ui';
 import type { Recordable } from '@vben/types';
 
-import { computed, h, ref } from 'vue';
+import { computed, h } from 'vue';
 
 import { AuthenticationRegister, z } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 
-defineOptions({ name: 'Register' });
+import { useAuthStore } from '#/store';
 
-const loading = ref(false);
+defineOptions({ name: 'Register' });
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
@@ -81,15 +81,20 @@ const formSchema = computed((): VbenFormSchema[] => {
   ];
 });
 
+const authStore = useAuthStore();
+
 function handleSubmit(value: Recordable<any>) {
-  void value;
+  authStore.register(value, () => {
+    // 注册成功后跳转到登录页
+    window.location.href = '/auth/login';
+  });
 }
 </script>
 
 <template>
   <AuthenticationRegister
     :form-schema="formSchema"
-    :loading="loading"
+    :loading="authStore.registerLoading"
     @submit="handleSubmit"
   />
 </template>

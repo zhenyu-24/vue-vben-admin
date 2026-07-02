@@ -3,8 +3,8 @@ import type { RouteRecordStringComponent } from '@vben/types';
 import { requestClient } from '#/api/request';
 
 /**
- * 获取用户所有菜单
+ * 获取用户侧边栏菜单（fba 后端路径为 /sys/menus/sidebar）
  */
 export async function getAllMenusApi() {
-  return requestClient.get<RouteRecordStringComponent[]>('/menu/all');
+  return requestClient.get<RouteRecordStringComponent[]>('/sys/menus/sidebar');
 }

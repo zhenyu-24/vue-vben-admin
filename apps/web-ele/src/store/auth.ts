@@ -7,10 +7,16 @@ import { LOGIN_PATH } from '@vben/constants';
 import { preferences } from '@vben/preferences';
 import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 
-import { ElNotification } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
 import { defineStore } from 'pinia';
 
-import { getAccessCodesApi, getUserInfoApi, loginApi, logoutApi } from '#/api';
+import {
+  getAccessCodesApi,
+  getUserInfoApi,
+  loginApi,
+  logoutApi,
+  registerApi,
+} from '#/api';
 import { $t } from '#/locales';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -19,6 +25,21 @@ export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
 
   const loginLoading = ref(false);
+  const registerLoading = ref(false);
+
+  /**
+   * 将 fba 后端用户信息映射为 Vben Admin 的 UserInfo 格式
+   */
+  function mapUserInfo(raw: Record<string, any>, token?: string): UserInfo {
+    return {
+      ...raw,
+      userId: String(raw.id ?? raw.userId ?? ''),
+      realName: raw.nickname ?? raw.realName ?? raw.username ?? '',
+      desc: raw.desc ?? '',
+      homePath: raw.homePath ?? '',
+      token: token ?? raw.token ?? '',
+    };
+  }
 
   /**
    * 异步处理登录操作
@@ -29,25 +50,32 @@ export const useAuthStore = defineStore('auth', () => {
     params: Recordable<any>,
     onSuccess?: () => Promise<void> | void,
   ) {
-    // 异步处理用户登录操作并获取 accessToken
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { accessToken } = await loginApi(params);
 
-      // 如果成功获取到 accessToken
+      // 过滤前端滑块验证码（boolean），fba 后端使用 text captcha + uuid
+      const { captcha, selectAccount, ...restParams } = params;
+      const loginParams =
+        typeof captcha === 'string'
+          ? { ...restParams, captcha, uuid: params.uuid }
+          : restParams;
+
+      // fba 后端返回 snake_case: { access_token, access_token_expire_time, session_uuid, user }
+      const result = await loginApi(loginParams);
+      const accessToken = result.access_token;
+
       if (accessToken) {
-        // 将 accessToken 存储到 accessStore 中
         accessStore.setAccessToken(accessToken);
 
-        // 获取用户信息并存储到 accessStore 中
+        // 获取用户信息（包含 roles）和权限码
         const [fetchUserInfoResult, accessCodes] = await Promise.all([
           fetchUserInfo(),
           getAccessCodesApi(),
         ]);
 
-        userInfo = fetchUserInfoResult;
-
+        // 映射为 Vben Admin 的 UserInfo 格式
+        userInfo = mapUserInfo(fetchUserInfoResult, accessToken);
         userStore.setUserInfo(userInfo);
         accessStore.setAccessCodes(accessCodes);
 
@@ -73,9 +101,27 @@ export const useAuthStore = defineStore('auth', () => {
       loginLoading.value = false;
     }
 
-    return {
-      userInfo,
-    };
+    return { userInfo };
+  }
+
+  /**
+   * 用户注册
+   */
+  async function register(params: Recordable<any>, onSuccess?: () => void) {
+    try {
+      registerLoading.value = true;
+      await registerApi({
+        username: params.username,
+        password: params.password,
+        nickname: params.nickname,
+        email: params.email,
+        phone: params.phone,
+      });
+      ElMessage.success($t('authentication.registerSuccess') || '注册成功');
+      onSuccess?.();
+    } finally {
+      registerLoading.value = false;
+    }
   }
 
   async function logout(redirect: boolean = true) {
@@ -87,7 +133,6 @@ export const useAuthStore = defineStore('auth', () => {
     resetAllStores();
     accessStore.setLoginExpired(false);
 
-    // 回登录页带上当前路由地址
     await router.replace({
       path: LOGIN_PATH,
       query: redirect
@@ -100,12 +145,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUserInfo() {
     const userInfo = await getUserInfoApi();
+    // 暂不映射，authLogin 中会整体 mapUserInfo
     userStore.setUserInfo(userInfo);
     return userInfo;
   }
 
   function $reset() {
     loginLoading.value = false;
+    registerLoading.value = false;
   }
 
   return {
@@ -114,5 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUserInfo,
     loginLoading,
     logout,
+    register,
+    registerLoading,
   };
 });

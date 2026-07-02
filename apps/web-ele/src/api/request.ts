@@ -46,13 +46,16 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   }
 
   /**
-   * 刷新token逻辑
+   * 刷新token逻辑 (适配 fba 后端: 返回 { code, msg, data: { access_token, ... } })
    */
   async function doRefreshToken() {
     const accessStore = useAccessStore();
     const resp = await refreshTokenApi();
-    const newToken = resp.data;
-    accessStore.setAccessToken(newToken);
+    // baseRequestClient 返回完整响应, resp.data 是响应体
+    const newToken = resp.data?.data?.access_token ?? resp.data;
+    if (newToken && typeof newToken === 'string') {
+      accessStore.setAccessToken(newToken);
+    }
     return newToken;
   }
 
@@ -71,12 +74,12 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
     },
   });
 
-  // 处理返回的响应数据格式
+  // 处理返回的响应数据格式 (fba 后端成功 code 为 200)
   client.addResponseInterceptor(
     defaultResponseInterceptor({
       codeField: 'code',
       dataField: 'data',
-      successCode: 0,
+      successCode: 200,
     }),
   );
 

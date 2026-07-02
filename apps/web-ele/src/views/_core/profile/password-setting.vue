@@ -7,6 +7,9 @@ import { ProfilePasswordSetting, z } from '@vben/common-ui';
 
 import { ElMessage } from 'element-plus';
 
+import { updatePasswordApi } from '#/api';
+import { useAuthStore } from '#/store';
+
 const formSchema = computed((): VbenFormSchema[] => {
   return [
     {
@@ -16,6 +19,7 @@ const formSchema = computed((): VbenFormSchema[] => {
       componentProps: {
         placeholder: '请输入旧密码',
       },
+      rules: z.string().min(1, { message: '请输入旧密码' }),
     },
     {
       fieldName: 'newPassword',
@@ -25,6 +29,7 @@ const formSchema = computed((): VbenFormSchema[] => {
         passwordStrength: true,
         placeholder: '请输入新密码',
       },
+      rules: z.string().min(6, { message: '密码至少6位' }),
     },
     {
       fieldName: 'confirmPassword',
@@ -50,8 +55,21 @@ const formSchema = computed((): VbenFormSchema[] => {
   ];
 });
 
-function handleSubmit() {
-  ElMessage.success('密码修改成功');
+async function handleSubmit(values: Record<string, any>) {
+  try {
+    // 将前端 camelCase 字段名映射为 fba 后端 snake_case
+    await updatePasswordApi({
+      old_password: values.oldPassword,
+      new_password: values.newPassword,
+      confirm_password: values.confirmPassword,
+    });
+    ElMessage.success('密码修改成功，请重新登录');
+    // 密码修改后后端会清除所有 token，用户需重新登录
+    useAuthStore().logout();
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || '密码修改失败';
+    ElMessage.error(msg);
+  }
 }
 </script>
 <template>
