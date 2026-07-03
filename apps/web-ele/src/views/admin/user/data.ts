@@ -4,32 +4,36 @@ import type { SysUserResult } from '#/api';
 
 import { ElMessage } from 'element-plus';
 
+import { $t } from '@vben/locales';
+
 import { updateSysUserPermissionApi } from '#/api';
 
-export const querySchema: VbenFormSchema[] = [
-  {
-    component: 'Input',
-    fieldName: 'username',
-    label: '用户名',
-  },
-  {
-    component: 'Input',
-    fieldName: 'phone',
-    label: '手机号',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      allowClear: true,
-      options: [
-        { label: '正常', value: 1 },
-        { label: '停用', value: 0 },
-      ],
+export function useQuerySchema(): VbenFormSchema[] {
+  return [
+    {
+      component: 'Input',
+      fieldName: 'username',
+      label: $t('page.admin.userPage.form.username'),
     },
-    fieldName: 'status',
-    label: '状态',
-  },
-];
+    {
+      component: 'Input',
+      fieldName: 'phone',
+      label: $t('page.admin.userPage.form.phone'),
+    },
+    {
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: [
+          { label: $t('page.admin.userPage.status.normal'), value: 1 },
+          { label: $t('page.admin.userPage.status.disabled'), value: 0 },
+        ],
+      },
+      fieldName: 'status',
+      label: $t('page.admin.userPage.form.status'),
+    },
+  ];
+}
 
 function createPermissionSwitch(type: string, props?: Record<string, any>) {
   return {
@@ -37,7 +41,7 @@ function createPermissionSwitch(type: string, props?: Record<string, any>) {
     attrs: {
       async beforeChange(_checked: any, row: SysUserResult) {
         await updateSysUserPermissionApi(row.id, type);
-        ElMessage.success('操作成功');
+        ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
       },
     },
     props,
@@ -48,53 +52,53 @@ export function useColumns(
   onActionClick?: OnActionClickFn<SysUserResult>,
 ): VxeGridProps['columns'] {
   return [
-    { field: 'seq', title: '序号', type: 'seq', fixed: 'left', width: 50 },
-    { field: 'username', title: '用户名', fixed: 'left', width: 100 },
-    { field: 'nickname', title: '昵称', width: 100 },
+    { field: 'seq', title: $t('page.admin.userPage.column.seq'), type: 'seq', fixed: 'left', width: 50 },
+    { field: 'username', title: $t('page.admin.userPage.column.username'), fixed: 'left', width: 100 },
+    { field: 'nickname', title: $t('page.admin.userPage.column.nickname'), width: 100 },
     {
       field: 'avatar',
-      title: '头像',
+      title: $t('page.admin.userPage.column.avatar'),
       width: 80,
       slots: { default: 'avatar' },
     },
     {
       field: 'dept',
-      title: '部门',
+      title: $t('page.admin.userPage.column.dept'),
       width: 120,
       slots: { default: 'dept' },
     },
     {
       field: 'roles',
-      title: '角色',
+      title: $t('page.admin.userPage.column.roles'),
       width: 200,
       showOverflow: 'ellipsis',
       slots: { default: 'roles' },
     },
     {
       field: 'phone',
-      title: '手机号',
+      title: $t('page.admin.userPage.column.phone'),
       width: 150,
       formatter({ cellValue }: any) {
-        return cellValue || '暂无';
+        return cellValue || $t('page.admin.userPage.message.noData');
       },
     },
     {
       field: 'email',
-      title: '邮箱',
+      title: $t('page.admin.userPage.column.email'),
       width: 150,
       formatter({ cellValue }: any) {
-        return cellValue || '暂无';
+        return cellValue || $t('page.admin.userPage.message.noData');
       },
     },
     {
       field: 'status',
-      title: '状态',
+      title: $t('page.admin.userPage.column.status'),
       width: 100,
       cellRender: createPermissionSwitch('status'),
     },
     {
       field: 'is_superuser',
-      title: '超级管理员',
+      title: $t('page.admin.userPage.column.superuser'),
       width: 100,
       cellRender: createPermissionSwitch('superuser', {
         activeValue: true,
@@ -103,7 +107,7 @@ export function useColumns(
     },
     {
       field: 'is_staff',
-      title: '后台登录',
+      title: $t('page.admin.userPage.column.staff'),
       width: 100,
       cellRender: createPermissionSwitch('staff', {
         activeValue: true,
@@ -112,18 +116,18 @@ export function useColumns(
     },
     {
       field: 'is_multi_login',
-      title: '多端登录',
+      title: $t('page.admin.userPage.column.multiLogin'),
       width: 100,
       cellRender: createPermissionSwitch('multi_login', {
         activeValue: true,
         inactiveValue: false,
       }),
     },
-    { field: 'join_time', title: '注册时间', width: 168 },
-    { field: 'last_login_time', title: '最后登录时间', width: 168 },
+    { field: 'join_time', title: $t('page.admin.userPage.column.joinTime'), width: 168 },
+    { field: 'last_login_time', title: $t('page.admin.userPage.column.lastLogin'), width: 168 },
     {
       field: 'operation',
-      title: '操作',
+      title: $t('page.admin.userPage.column.operation'),
       align: 'center',
       fixed: 'right',
       width: 150,
@@ -134,14 +138,15 @@ export function useColumns(
         },
         name: 'CellOperation',
         options: [
-          'edit',
+          { code: 'edit', text: $t('common.edit') },
           {
             code: 'delete',
+            text: $t('common.delete'),
             disabled: (row: SysUserResult) => row.username === 'admin',
           },
           {
             code: 'reset_password',
-            text: '重置密码',
+            text: $t('page.admin.userPage.action.resetPassword'),
           },
         ],
       },
@@ -149,105 +154,134 @@ export function useColumns(
   ];
 }
 
-export function useEditSchema(roleSelectOptions: any): VbenFormSchema[] {
+export function useEditSchema(): VbenFormSchema[] {
   return [
     {
       component: 'Input',
       fieldName: 'username',
-      label: '用户名',
+      label: $t('page.admin.userPage.form.username'),
       rules: 'required',
     },
     {
       component: 'Input',
       fieldName: 'nickname',
-      label: '昵称',
+      label: $t('page.admin.userPage.form.nickname'),
       rules: 'required',
     },
     {
       component: 'Input',
-      fieldName: 'avatar',
-      label: '头像地址',
-    },
-    {
-      component: 'Input',
       fieldName: 'phone',
-      label: '手机号码',
+      label: $t('page.admin.userPage.form.phoneNumber'),
     },
     {
       component: 'Input',
       fieldName: 'email',
-      label: '邮箱',
+      label: $t('page.admin.userPage.form.email'),
     },
     {
       component: 'Select',
       componentProps: {
         class: 'w-full',
-        mode: 'multiple',
-        options: roleSelectOptions,
-        fieldNames: { label: 'name', value: 'id' },
+        multiple: true,
+        props: { label: 'name', value: 'id' },
         filterOption: (input: string, option: any) => {
           return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
         },
       },
       fieldName: 'roles',
-      label: '角色',
-      rules: 'selectRequired',
+      label: $t('page.admin.userPage.form.role'),
+    },
+    {
+      component: 'Select',
+      componentProps: {
+        class: 'w-full',
+        clearable: true,
+        placeholder: $t('page.admin.userPage.form.placeholder'),
+        props: { label: 'name', value: 'id' },
+        filterOption: (input: string, option: any) => {
+          return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
+        },
+      },
+      fieldName: 'dept_id',
+      label: $t('page.admin.userPage.form.dept'),
     },
   ];
 }
 
-export function useAddSchema(roleSelectOptions: any): VbenFormSchema[] {
+export function useAddSchema(): VbenFormSchema[] {
   return [
     {
       component: 'Input',
       fieldName: 'username',
-      label: '用户名',
+      label: $t('page.admin.userPage.form.username'),
       rules: 'required',
     },
     {
       component: 'Input',
       fieldName: 'nickname',
-      label: '昵称',
+      label: $t('page.admin.userPage.form.nickname'),
     },
     {
-      component: 'InputPassword',
+      component: 'Input',
+      componentProps: {
+        type: 'password',
+        showPassword: true,
+      },
       fieldName: 'password',
-      label: '密码',
+      label: $t('page.admin.userPage.form.password'),
       rules: 'required',
     },
     {
       component: 'Input',
       fieldName: 'phone',
-      label: '手机号码',
+      label: $t('page.admin.userPage.form.phoneNumber'),
     },
     {
       component: 'Input',
       fieldName: 'email',
-      label: '邮箱',
+      label: $t('page.admin.userPage.form.email'),
     },
     {
       component: 'Select',
       componentProps: {
         class: 'w-full',
-        mode: 'multiple',
-        options: roleSelectOptions,
-        fieldNames: { label: 'name', value: 'id' },
+        multiple: true,
+        props: { label: 'name', value: 'id' },
         filterOption: (input: string, option: any) => {
           return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
         },
       },
       fieldName: 'roles',
-      label: '角色',
-      rules: 'selectRequired',
+      label: $t('page.admin.userPage.form.role'),
+    },
+    {
+      component: 'Select',
+      componentProps: {
+        class: 'w-full',
+        clearable: true,
+        placeholder: $t('page.admin.userPage.form.placeholder'),
+        props: { label: 'name', value: 'id' },
+        filterOption: (input: string, option: any) => {
+          return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
+        },
+      },
+      fieldName: 'dept_id',
+      label: $t('page.admin.userPage.form.dept'),
     },
   ];
 }
 
-export const resetPwdSchema: VbenFormSchema[] = [
-  {
-    component: 'InputPassword',
-    fieldName: 'password',
-    label: '新密码',
-    rules: 'required',
-  },
-];
+export function useResetPwdSchema(): VbenFormSchema[] {
+  return [
+    {
+      component: 'Input',
+      componentProps: {
+        type: 'password',
+        showPassword: true,
+      },
+      fieldName: 'password',
+      label: $t('page.admin.userPage.form.newPassword'),
+      rules: 'required',
+    },
+  ];
+}
