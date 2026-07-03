@@ -14,6 +14,14 @@
   },
   "admin": {
     "title": "系统管理",
-    "user": "用户管理"
+    "org": "组织管理",
+    "log": "日志管理",
+    "monitor": "系统监控",
+    "user": "用户管理",
+    "loginLog": "登录日志",
+    "operaLog": "操作日志",
+    "online": "在线用户",
+    "redis": "Redis 监控",
+    "server": "服务器监控"
   }
 }

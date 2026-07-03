@@ -14,6 +14,14 @@
   },
   "admin": {
     "title": "System",
-    "user": "User Management"
+    "org": "Organization",
+    "log": "Log Management",
+    "monitor": "System Monitor",
+    "user": "User Management",
+    "loginLog": "Login Log",
+    "operaLog": "Operation Log",
+    "online": "Online Users",
+    "redis": "Redis Monitor",
+    "server": "Server Monitor"
   }
 }

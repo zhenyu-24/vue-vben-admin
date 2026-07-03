@@ -1,121 +1,273 @@
-<script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
+<script setup lang="ts">
+import type { VbenFormProps } from '@vben/common-ui';
 
-import { Page } from '@vben/common-ui';
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type {
+  SysAddUserParams,
+  SysResetPasswordParams,
+  SysUpdateUserParams,
+} from '#/api';
+import type { SysRoleResult, SysUserResult } from '#/api';
 
-import { ElButton, ElPagination, ElSwitch, ElTable, ElTableColumn, ElTag } from 'element-plus';
+import { onMounted, ref } from 'vue';
 
-import { getUsersApi } from '#/api';
-import { $t } from '#/locales';
+import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
+import { $t } from '@vben/locales';
+import { preferences } from '@vben/preferences';
 
-interface UserItem {
-  id: string;
-  username: string;
-  nickname: string;
-  email: string | null;
-  phone: string | null;
-  avatar: string | null;
-  status: number;
-  is_superuser: boolean;
-  is_staff: boolean;
-  join_time: string;
-  last_login_time: string | null;
-  dept: { name: string } | null;
-  roles: { name: string }[];
+import { ElAvatar, ElMessage, ElTag, ElTooltip } from 'element-plus';
+
+import { useVbenForm } from '#/adapter/form';
+import { useVbenVxeGrid } from '#/adapter/vxe-table';
+import {
+  createSysUserApi,
+  deleteSysUserApi,
+  getAllSysRoleApi,
+  getUsersApi,
+  resetSysUserPasswordApi,
+  updateSysUserApi,
+} from '#/api';
+import {
+  querySchema,
+  resetPwdSchema,
+  useAddSchema,
+  useColumns,
+  useEditSchema,
+} from './data';
+
+const formOptions: VbenFormProps = {
+  collapsed: true,
+  showCollapseButton: true,
+  submitButtonOptions: {
+    content: $t('common.query'),
+  },
+  schema: querySchema,
+};
+
+const gridOptions: VxeTableGridOptions<SysUserResult> = {
+  rowConfig: {
+    keyField: 'id',
+  },
+  checkboxConfig: {
+    highlight: true,
+  },
+  height: 'auto',
+  exportConfig: {},
+  printConfig: {},
+  toolbarConfig: {
+    export: true,
+    print: false,
+    refresh: true,
+    refreshOptions: {
+      code: 'query',
+    },
+    custom: true,
+    zoom: true,
+  },
+  columns: useColumns(onActionClick),
+  proxyConfig: {
+    ajax: {
+      query: async ({ page }, formValues) => {
+        return await getUsersApi({
+          page: page.currentPage,
+          size: page.pageSize,
+          ...formValues,
+        });
+      },
+    },
+  },
+};
+
+const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
+
+function onRefresh() {
+  gridApi.query();
 }
 
-interface PageData {
-  items: UserItem[];
-  total: number;
-  page: number;
-  size: number;
-  total_pages: number;
-}
-
-const loading = ref(false);
-const pageData = reactive<PageData>({
-  items: [],
-  total: 0,
-  page: 1,
-  size: 20,
-  total_pages: 0,
-});
-
-async function fetchData() {
-  loading.value = true;
-  try {
-    const result = await getUsersApi({
-      page: pageData.page,
-      size: pageData.size,
-    });
-    // fba 后端返回 { code, msg, data: { items, total, page, size, total_pages } }
-    // requestClient 已通过 interceptor 解出 data
-    pageData.items = result.items ?? [];
-    pageData.total = result.total ?? 0;
-    pageData.page = result.page ?? 1;
-    pageData.size = result.size ?? 20;
-    pageData.total_pages = result.total_pages ?? 0;
-  } finally {
-    loading.value = false;
+async function onActionClick({ code, row }: any) {
+  switch (code) {
+    case 'delete': {
+      gridApi.setLoading(true);
+      try {
+        await deleteSysUserApi(row.id);
+        ElMessage.success(`已删除用户 ${row.username}`);
+        onRefresh();
+      } finally {
+        gridApi.setLoading(false);
+      }
+      break;
+    }
+    case 'edit': {
+      editUserId.value = row.id;
+      editModalApi.setData(row).open();
+      break;
+    }
+    case 'reset_password': {
+      editUserId.value = row.id;
+      resetPwdModalApi.setData(null).open();
+      break;
+    }
   }
 }
 
-function handlePageChange(page: number) {
-  pageData.page = page;
-  fetchData();
-}
+const roleSelectOptions = ref<SysRoleResult[]>([]);
+const fetchAllSysRole = async () => {
+  try {
+    roleSelectOptions.value = await getAllSysRoleApi();
+  } catch {
+    // ignore
+  }
+};
 
-function handleSizeChange(size: number) {
-  pageData.size = size;
-  pageData.page = 1;
-  fetchData();
-}
+// --- 编辑用户 ---
+const [EditForm, editFormApi] = useVbenForm({
+  showDefaultActions: false,
+  schema: useEditSchema(roleSelectOptions),
+});
+
+const editUserId = ref<number>(0);
+
+const [editModal, editModalApi] = useVbenModal({
+  destroyOnClose: true,
+  async onConfirm() {
+    const { valid } = await editFormApi.validate();
+    if (valid) {
+      editModalApi.lock();
+      const data = await editFormApi.getValues<SysUpdateUserParams>();
+      try {
+        await updateSysUserApi(editUserId.value, data);
+        ElMessage.success('操作成功');
+        await editModalApi.close();
+        onRefresh();
+      } finally {
+        editModalApi.unlock();
+      }
+    }
+  },
+  onOpenChange(isOpen) {
+    if (isOpen) {
+      const data = editModalApi.getData<any>();
+      editFormApi.resetForm();
+      if (data) {
+        editFormApi.setValues({
+          ...data,
+          roles: data.roles?.map((item: any) => item.id) || [],
+        });
+      }
+    }
+  },
+});
+
+// --- 添加用户 ---
+const [AddForm, addFormApi] = useVbenForm({
+  showDefaultActions: false,
+  schema: useAddSchema(roleSelectOptions),
+});
+
+const [addModal, addModalApi] = useVbenModal({
+  destroyOnClose: true,
+  async onConfirm() {
+    const { valid } = await addFormApi.validate();
+    if (valid) {
+      addModalApi.lock();
+      const data = await addFormApi.getValues<SysAddUserParams>();
+      try {
+        await createSysUserApi(data);
+        ElMessage.success('操作成功');
+        await addModalApi.close();
+        onRefresh();
+      } finally {
+        addModalApi.unlock();
+      }
+    }
+  },
+  onOpenChange(isOpen) {
+    if (isOpen) {
+      addFormApi.resetForm();
+    }
+  },
+});
+
+// --- 重置密码 ---
+const [ResetPwdForm, resetPwdFormApi] = useVbenForm({
+  layout: 'vertical',
+  showDefaultActions: false,
+  schema: resetPwdSchema,
+});
+
+const [resetPwdModal, resetPwdModalApi] = useVbenModal({
+  destroyOnClose: true,
+  centered: true,
+  async onConfirm() {
+    const { valid } = await resetPwdFormApi.validate();
+    if (valid) {
+      resetPwdModalApi.lock();
+      const data = await resetPwdFormApi.getValues<SysResetPasswordParams>();
+      try {
+        await resetSysUserPasswordApi(editUserId.value, data);
+        ElMessage.success('操作成功');
+        await resetPwdModalApi.close();
+      } finally {
+        resetPwdModalApi.unlock();
+      }
+    }
+  },
+  onOpenChange(isOpen) {
+    if (isOpen) {
+      resetPwdFormApi.resetForm();
+    }
+  },
+});
 
 onMounted(() => {
-  fetchData();
+  fetchAllSysRole();
 });
 </script>
 
 <template>
-  <Page :title="$t('page.admin.user')">
-    <ElTable :data="pageData.items" border stripe v-loading="loading">
-      <ElTableColumn prop="username" label="用户名" min-width="120" />
-      <ElTableColumn prop="nickname" label="昵称" min-width="120" />
-      <ElTableColumn prop="email" label="邮箱" min-width="180" />
-      <ElTableColumn prop="phone" label="手机号" width="130" />
-      <ElTableColumn label="状态" width="80" align="center">
-        <template #default="{ row }: { row: UserItem }">
-          <ElTag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-            {{ row.status === 1 ? '正常' : '停用' }}
+  <Page auto-content-height>
+    <Grid>
+      <template #toolbar-actions>
+        <VbenButton @click="() => addModalApi.setData(null).open()">
+          <IconifyIcon icon="material-symbols:add" class="mr-1 size-5" />
+          添加用户
+        </VbenButton>
+      </template>
+      <template #avatar="{ row }">
+        <ElAvatar :src="row.avatar || preferences.app.defaultAvatar" :size="32" />
+      </template>
+      <template #dept="{ row }">
+        <ElTag v-if="row.dept" type="success" size="small">
+          {{ row.dept.name }}
+        </ElTag>
+        <span v-else>未绑定</span>
+      </template>
+      <template #roles="{ row }">
+        <template v-if="row.roles.length === 1">
+          <ElTag type="primary" size="small">
+            {{ row.roles[0]?.name }}
           </ElTag>
         </template>
-      </ElTableColumn>
-      <ElTableColumn label="是否管理员" width="100" align="center">
-        <template #default="{ row }: { row: UserItem }">
-          {{ row.is_superuser ? '是' : '否' }}
+        <template v-else-if="row.roles.length > 1">
+          <ElTooltip placement="top" :content="row.roles.map((r: any) => r.name).join(', ')" :width="300">
+            <ElTag v-for="role in row.roles" :key="role.name" type="primary" size="small" class="mr-1">
+              {{ role.name }}
+            </ElTag>
+          </ElTooltip>
         </template>
-      </ElTableColumn>
-      <ElTableColumn label="角色" min-width="150">
-        <template #default="{ row }: { row: UserItem }">
-          <ElTag v-for="role in row.roles" :key="role.name" class="mr-1" size="small">
-            {{ role.name }}
-          </ElTag>
-        </template>
-      </ElTableColumn>
-      <ElTableColumn prop="join_time" label="注册时间" width="170" />
-    </ElTable>
+        <span v-else>未绑定</span>
+      </template>
+    </Grid>
 
-    <div class="mt-4 flex justify-end">
-      <ElPagination
-        :current-page="pageData.page"
-        :page-size="pageData.size"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="pageData.total"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-      />
-    </div>
+    <editModal title="修改用户">
+      <EditForm />
+    </editModal>
+    <addModal title="添加用户">
+      <AddForm />
+    </addModal>
+    <resetPwdModal title="重置密码">
+      <ResetPwdForm />
+    </resetPwdModal>
   </Page>
 </template>
