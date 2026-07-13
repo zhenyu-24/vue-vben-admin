@@ -72,6 +72,8 @@
     "operaLog": "Operation Log",
     "online": "Online Users",
     "redis": "Redis Monitor",
-    "server": "Server Monitor"
+    "server": "Server Monitor",
+    "notice": "Notice",
+    "config": "Parameter Config"
   }
 }

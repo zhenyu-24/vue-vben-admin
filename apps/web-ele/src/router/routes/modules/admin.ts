@@ -100,6 +100,24 @@ const routes: RouteRecordRaw[] = [
           },
         ],
       },
+      {
+        meta: {
+          icon: 'fe:notice-push',
+          title: $t('page.admin.notice'),
+        },
+        name: 'AdminNotice',
+        path: '/admin/notice',
+        component: () => import('#/views/admin/notice/index.vue'),
+      },
+      {
+        meta: {
+          icon: 'codicon:symbol-parameter',
+          title: $t('page.admin.config'),
+        },
+        name: 'AdminConfig',
+        path: '/admin/config',
+        component: () => import('#/views/admin/config/index.vue'),
+      },
     ],
   },
 ];

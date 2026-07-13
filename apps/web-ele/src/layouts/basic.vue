@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
 
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
@@ -19,29 +19,80 @@ import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
 import { useWatermark } from '@vben/hooks';
 
+import {
+  clearUserNoticesApi,
+  deleteUserNoticeApi,
+  getNoticeListApi,
+  getUserNoticeStatusApi,
+  markAllNoticesReadApi,
+  markNoticeReadApi,
+} from '#/api';
+
 /** ---------- 通知 ---------- */
 const notifications = ref<NotificationItem[]>([]);
 const showDot = computed(() =>
   notifications.value.some((item) => !item.isRead),
 );
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+async function fetchNotifications() {
+  try {
+    const [noticeRes, statusRes] = await Promise.all([
+      getNoticeListApi({ status: 1, page: 1, size: 50 }),
+      getUserNoticeStatusApi(),
+    ]);
+    const statusMap = new Map(
+      (statusRes ?? []).map((s) => [s.notice_id, s]),
+    );
+
+    notifications.value = (noticeRes.items ?? [])
+      .filter((item) => !statusMap.get(item.id)?.is_deleted)
+      .map((item) => {
+        const userStatus = statusMap.get(item.id);
+        return {
+          id: item.id,
+          title: item.title,
+          message: item.content?.replace(/[#*`>\[\]]/g, '').slice(0, 120) || '',
+          date: item.created_time,
+          avatar: preferences.app.defaultAvatar,
+          isRead: userStatus?.is_read ?? false,
+          link: '',
+        };
+      });
+  } catch {
+    // 静默失败，不影响布局
+  }
+}
 
 function handleNoticeClear() {
+  const ids = notifications.value.map((n) => n.id as number);
+  if (ids.length > 0) {
+    clearUserNoticesApi(ids);
+  }
   notifications.value = [];
 }
 
 function markRead(id: number | string) {
-  const item = notifications.value.find((item) => item.id === id);
+  markNoticeReadApi(id as number);
+  const item = notifications.value.find((n) => n.id === id);
   if (item) {
     item.isRead = true;
   }
 }
 
 function remove(id: number | string) {
-  notifications.value = notifications.value.filter((item) => item.id !== id);
+  deleteUserNoticeApi(id as number);
+  notifications.value = notifications.value.filter((n) => n.id !== id);
 }
 
 function handleMakeAll() {
-  notifications.value.forEach((item) => (item.isRead = true));
+  const ids = notifications.value.map((n) => n.id as number);
+  if (ids.length > 0) {
+    markAllNoticesReadApi(ids);
+  }
+  notifications.value.forEach((item) => {
+    item.isRead = true;
+  });
 }
 
 const viewAll = () => {};
@@ -51,6 +102,19 @@ function handleClick(item: NotificationItem) {
     navigateTo(item.link, item.query, item.state);
   }
 }
+
+onMounted(() => {
+  fetchNotifications();
+  // 每 60 秒轮询新通知
+  pollTimer = setInterval(fetchNotifications, 60_000);
+});
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+});
 
 /** 跳转（支持内/外部链接） */
 function navigateTo(
