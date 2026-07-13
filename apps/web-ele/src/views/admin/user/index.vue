@@ -7,13 +7,13 @@ import type {
   SysResetPasswordParams,
   SysUpdateUserParams,
 } from '#/api';
-import type { SysRoleResult, SysUserResult } from '#/api';
+import type { SysUserResult } from '#/api';
 
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
-import { $t } from '@vben/locales';
+import { $t, useI18n } from '@vben/locales';
 import { preferences } from '@vben/preferences';
 
 import { ElAvatar, ElMessage, ElTag, ElTooltip } from 'element-plus';
@@ -23,17 +23,18 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   createSysUserApi,
   deleteSysUserApi,
+  getAllSysDeptApi,
   getAllSysRoleApi,
   getUsersApi,
   resetSysUserPasswordApi,
   updateSysUserApi,
 } from '#/api';
 import {
-  querySchema,
-  resetPwdSchema,
   useAddSchema,
   useColumns,
   useEditSchema,
+  useQuerySchema,
+  useResetPwdSchema,
 } from './data';
 
 const formOptions: VbenFormProps = {
@@ -42,7 +43,7 @@ const formOptions: VbenFormProps = {
   submitButtonOptions: {
     content: $t('common.query'),
   },
-  schema: querySchema,
+  schema: useQuerySchema(),
 };
 
 const gridOptions: VxeTableGridOptions<SysUserResult> = {
@@ -91,7 +92,7 @@ async function onActionClick({ code, row }: any) {
       gridApi.setLoading(true);
       try {
         await deleteSysUserApi(row.id);
-        ElMessage.success(`已删除用户 ${row.username}`);
+        ElMessage.success($t('page.admin.userPage.message.deleteSuccess', { username: row.username }));
         onRefresh();
       } finally {
         gridApi.setLoading(false);
@@ -111,19 +112,30 @@ async function onActionClick({ code, row }: any) {
   }
 }
 
-const roleSelectOptions = ref<SysRoleResult[]>([]);
-const fetchAllSysRole = async () => {
-  try {
-    roleSelectOptions.value = await getAllSysRoleApi();
-  } catch {
-    // ignore
-  }
+const loadFormOptions = async () => {
+  const [roles, depts] = await Promise.all([
+    getAllSysRoleApi(),
+    getAllSysDeptApi(),
+  ]);
+  const setOpts = (api: typeof editFormApi) => {
+    const cur = [...(api.state?.schema ?? [])];
+    cur.forEach((item, idx) => {
+      if (item.fieldName === 'roles') {
+        cur[idx] = { ...item, componentProps: { ...item.componentProps, options: roles } };
+      } else if (item.fieldName === 'dept_id') {
+        cur[idx] = { ...item, componentProps: { ...item.componentProps, options: depts } };
+      }
+    });
+    api.setState({ schema: cur });
+  };
+  setOpts(editFormApi);
+  setOpts(addFormApi);
 };
 
 // --- 编辑用户 ---
 const [EditForm, editFormApi] = useVbenForm({
   showDefaultActions: false,
-  schema: useEditSchema(roleSelectOptions),
+  schema: useEditSchema(),
 });
 
 const editUserId = ref<number>(0);
@@ -135,9 +147,10 @@ const [editModal, editModalApi] = useVbenModal({
     if (valid) {
       editModalApi.lock();
       const data = await editFormApi.getValues<SysUpdateUserParams>();
+      data.dept_id = data.dept_id ?? null;
       try {
         await updateSysUserApi(editUserId.value, data);
-        ElMessage.success('操作成功');
+        ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
         await editModalApi.close();
         onRefresh();
       } finally {
@@ -153,6 +166,7 @@ const [editModal, editModalApi] = useVbenModal({
         editFormApi.setValues({
           ...data,
           roles: data.roles?.map((item: any) => item.id) || [],
+          dept_id: data.dept?.id ?? undefined,
         });
       }
     }
@@ -162,7 +176,7 @@ const [editModal, editModalApi] = useVbenModal({
 // --- 添加用户 ---
 const [AddForm, addFormApi] = useVbenForm({
   showDefaultActions: false,
-  schema: useAddSchema(roleSelectOptions),
+  schema: useAddSchema(),
 });
 
 const [addModal, addModalApi] = useVbenModal({
@@ -172,9 +186,10 @@ const [addModal, addModalApi] = useVbenModal({
     if (valid) {
       addModalApi.lock();
       const data = await addFormApi.getValues<SysAddUserParams>();
+      data.dept_id = data.dept_id ?? null;
       try {
         await createSysUserApi(data);
-        ElMessage.success('操作成功');
+        ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
         await addModalApi.close();
         onRefresh();
       } finally {
@@ -193,7 +208,7 @@ const [addModal, addModalApi] = useVbenModal({
 const [ResetPwdForm, resetPwdFormApi] = useVbenForm({
   layout: 'vertical',
   showDefaultActions: false,
-  schema: resetPwdSchema,
+  schema: useResetPwdSchema(),
 });
 
 const [resetPwdModal, resetPwdModalApi] = useVbenModal({
@@ -206,7 +221,7 @@ const [resetPwdModal, resetPwdModalApi] = useVbenModal({
       const data = await resetPwdFormApi.getValues<SysResetPasswordParams>();
       try {
         await resetSysUserPasswordApi(editUserId.value, data);
-        ElMessage.success('操作成功');
+        ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
         await resetPwdModalApi.close();
       } finally {
         resetPwdModalApi.unlock();
@@ -221,7 +236,29 @@ const [resetPwdModal, resetPwdModalApi] = useVbenModal({
 });
 
 onMounted(() => {
-  fetchAllSysRole();
+  loadFormOptions();
+});
+
+const { locale } = useI18n();
+
+watch(locale, () => {
+  // Grid columns & operation buttons
+  gridApi.setGridOptions({ columns: useColumns(onActionClick) });
+
+  // Query form schema + submit button
+  gridApi.formApi.setState({
+    schema: useQuerySchema(),
+    submitButtonOptions: { content: $t('common.query') },
+  });
+
+  // Edit form
+  editFormApi.setState({ schema: useEditSchema() });
+
+  // Add form
+  addFormApi.setState({ schema: useAddSchema() });
+
+  // Reset password form
+  resetPwdFormApi.setState({ schema: useResetPwdSchema() });
 });
 </script>
 
@@ -231,7 +268,7 @@ onMounted(() => {
       <template #toolbar-actions>
         <VbenButton @click="() => addModalApi.setData(null).open()">
           <IconifyIcon icon="material-symbols:add" class="mr-1 size-5" />
-          添加用户
+          {{ $t('page.admin.userPage.modal.add') }}
         </VbenButton>
       </template>
       <template #avatar="{ row }">
@@ -241,7 +278,7 @@ onMounted(() => {
         <ElTag v-if="row.dept" type="success" size="small">
           {{ row.dept.name }}
         </ElTag>
-        <span v-else>未绑定</span>
+        <span v-else>{{ $t('page.admin.userPage.message.unbound') }}</span>
       </template>
       <template #roles="{ row }">
         <template v-if="row.roles.length === 1">
@@ -256,17 +293,17 @@ onMounted(() => {
             </ElTag>
           </ElTooltip>
         </template>
-        <span v-else>未绑定</span>
+        <span v-else>{{ $t('page.admin.userPage.message.unbound') }}</span>
       </template>
     </Grid>
 
-    <editModal title="修改用户">
+    <editModal :title="$t('page.admin.userPage.modal.edit')">
       <EditForm />
     </editModal>
-    <addModal title="添加用户">
+    <addModal :title="$t('page.admin.userPage.modal.add')">
       <AddForm />
     </addModal>
-    <resetPwdModal title="重置密码">
+    <resetPwdModal :title="$t('page.admin.userPage.modal.resetPassword')">
       <ResetPwdForm />
     </resetPwdModal>
   </Page>

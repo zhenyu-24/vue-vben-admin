@@ -18,6 +18,56 @@
     "log": "日志管理",
     "monitor": "系统监控",
     "user": "用户管理",
+    "userPage": {
+      "modal": {
+        "add": "添加用户",
+        "edit": "修改用户",
+        "resetPassword": "重置密码"
+      },
+      "form": {
+        "username": "用户名",
+        "nickname": "昵称",
+        "phone": "手机号",
+        "phoneNumber": "手机号码",
+        "email": "邮箱",
+        "password": "密码",
+        "newPassword": "新密码",
+        "role": "角色",
+        "dept": "部门",
+        "status": "状态",
+        "placeholder": "请选择（可选）"
+      },
+      "column": {
+        "seq": "序号",
+        "username": "用户名",
+        "nickname": "昵称",
+        "avatar": "头像",
+        "dept": "部门",
+        "roles": "角色",
+        "phone": "手机号",
+        "email": "邮箱",
+        "status": "状态",
+        "superuser": "超级管理员",
+        "staff": "后台登录",
+        "multiLogin": "多端登录",
+        "joinTime": "注册时间",
+        "lastLogin": "最后登录时间",
+        "operation": "操作"
+      },
+      "status": {
+        "normal": "正常",
+        "disabled": "停用"
+      },
+      "message": {
+        "unbound": "未绑定",
+        "noData": "暂无",
+        "deleteSuccess": "已删除用户 {username}",
+        "operationSuccess": "操作成功"
+      },
+      "action": {
+        "resetPassword": "重置密码"
+      }
+    },
     "loginLog": "登录日志",
     "operaLog": "操作日志",
     "online": "在线用户",

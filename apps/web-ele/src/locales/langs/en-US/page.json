@@ -18,6 +18,56 @@
     "log": "Log Management",
     "monitor": "System Monitor",
     "user": "User Management",
+    "userPage": {
+      "modal": {
+        "add": "Add User",
+        "edit": "Edit User",
+        "resetPassword": "Reset Password"
+      },
+      "form": {
+        "username": "Username",
+        "nickname": "Nickname",
+        "phone": "Phone",
+        "phoneNumber": "Phone Number",
+        "email": "Email",
+        "password": "Password",
+        "newPassword": "New Password",
+        "role": "Role",
+        "dept": "Department",
+        "status": "Status",
+        "placeholder": "Please select (optional)"
+      },
+      "column": {
+        "seq": "#",
+        "username": "Username",
+        "nickname": "Nickname",
+        "avatar": "Avatar",
+        "dept": "Department",
+        "roles": "Roles",
+        "phone": "Phone",
+        "email": "Email",
+        "status": "Status",
+        "superuser": "Superuser",
+        "staff": "Staff",
+        "multiLogin": "Multi-Login",
+        "joinTime": "Join Time",
+        "lastLogin": "Last Login",
+        "operation": "Operations"
+      },
+      "status": {
+        "normal": "Normal",
+        "disabled": "Disabled"
+      },
+      "message": {
+        "unbound": "Unbound",
+        "noData": "N/A",
+        "deleteSuccess": "Deleted user {username}",
+        "operationSuccess": "Operation successful"
+      },
+      "action": {
+        "resetPassword": "Reset Password"
+      }
+    },
     "loginLog": "Login Log",
     "operaLog": "Operation Log",
     "online": "Online Users",

@@ -515,6 +515,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      echarts:
+        specifier: 'catalog:'
+        version: 6.1.0
     devDependencies:
       '@changesets/changelog-github':
         specifier: 'catalog:'
