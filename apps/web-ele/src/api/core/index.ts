@@ -1,5 +1,6 @@
 export * from './auth';
 export * from './config';
+export * from './dept';
 export * from './log';
 export * from './menu';
 export * from './monitor';

@@ -17,7 +17,7 @@ import {
   useVbenDrawer,
   VbenButton,
 } from '@vben/common-ui';
-import { IconifyIcon } from '@vben/icons';
+import { Delete } from '@element-plus/icons-vue';
 import { $t } from '@vben/locales';
 
 import { ElDescriptions, ElDescriptionsItem, ElMessage, ElTag } from 'element-plus';
@@ -179,7 +179,7 @@ watch(checkedRows, () => {
           :loading="deleteLoading"
           @click="deleteOperaLog"
         >
-          <IconifyIcon icon="material-symbols:delete" class="size-5" />
+          <Delete class="size-5" />
           删除日志
         </VbenButton>
       </template>

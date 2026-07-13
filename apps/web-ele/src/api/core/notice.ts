@@ -57,7 +57,7 @@ export async function deleteNoticeApi(pks: number[]) {
 export interface UserNoticeResult {
   notice_id: string;
   is_read: boolean;
-  is_deleted: boolean;
+  deleted: number;
 }
 
 /** 获取当前用户的公告已读/删除状态 */

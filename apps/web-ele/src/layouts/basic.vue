@@ -46,7 +46,7 @@ async function fetchNotifications() {
     );
 
     notifications.value = (noticeRes.items ?? [])
-      .filter((item) => !statusMap.get(item.id)?.is_deleted)
+      .filter((item) => !statusMap.get(item.id)?.deleted)
       .map((item) => {
         const userStatus = statusMap.get(item.id);
         return {

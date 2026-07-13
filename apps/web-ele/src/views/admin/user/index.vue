@@ -6,7 +6,7 @@ import type { SysUserResult } from '#/api';
 import { onMounted, watch } from 'vue';
 
 import { Page, VbenButton, VbenModal } from '@vben/common-ui';
-import { IconifyIcon } from '@vben/icons';
+import { Plus } from '@element-plus/icons-vue';
 import { $t, useI18n } from '@vben/locales';
 import { preferences } from '@vben/preferences';
 
@@ -130,7 +130,7 @@ watch(locale, () => {
     <Grid>
       <template #toolbar-actions>
         <VbenButton @click="() => addModalApi.setData(null).open()">
-          <IconifyIcon icon="material-symbols:add" class="mr-1 size-5" />
+          <Plus class="mr-1 size-5" />
           {{ $t('page.admin.userPage.modal.add') }}
         </VbenButton>
       </template>

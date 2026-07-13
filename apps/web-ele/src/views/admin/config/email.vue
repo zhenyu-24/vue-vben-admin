@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { ConfigResult } from '#/api';
 
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 import { VbenButton } from '@vben/common-ui';
-import { IconifyIcon } from '@vben/icons';
+import { CircleCheck, Close, Edit } from '@element-plus/icons-vue';
 import { $t } from '@vben/locales';
 
 import { ElMessage } from 'element-plus';
@@ -31,6 +31,11 @@ const loading = ref<boolean>(false);
 const saveLoading = ref<boolean>(false);
 
 const emailData = ref<ConfigResult[]>([]);
+
+onMounted(() => {
+  fetchConfigList();
+});
+
 const fetchConfigList = async () => {
   loading.value = true;
   try {
@@ -92,12 +97,12 @@ defineExpose({
     <Form />
     <div class="ml-1.5 mt-3">
       <VbenButton v-if="editButtonShow" @click="() => { editButtonShow = false; formApi.setState({ commonConfig: { disabled: false } }); }">
-    <IconifyIcon icon="material-symbols:edit-outline" class="mr-1" />
+    <Edit class="mr-1 size-5" />
     修改
       </VbenButton>
       <template v-else>
-    <VbenButton :loading="saveLoading" @click="saveEmailConfig">
-      <IconifyIcon icon="material-symbols:save-outline" class="mr-1" />
+      <VbenButton :loading="saveLoading" @click="saveEmailConfig">
+      <CircleCheck class="mr-1 size-5" />
       保存
     </VbenButton>
     <VbenButton
@@ -106,7 +111,7 @@ defineExpose({
       variant="outline"
       @click="() => { editButtonShow = true; formApi.setState({ commonConfig: { disabled: true } }); fetchConfigList(); }"
     >
-      <IconifyIcon icon="material-symbols:close" class="mr-1" />
+      <Close class="mr-1 size-5" />
       取消
     </VbenButton>
       </template>

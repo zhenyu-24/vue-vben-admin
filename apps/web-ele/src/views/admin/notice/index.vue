@@ -16,7 +16,7 @@ import { computed, nextTick, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
 import { marked } from 'marked';
-import { IconifyIcon } from '@vben/icons';
+import { Plus } from '@element-plus/icons-vue';
 import { $t } from '@vben/locales';
 
 import { ElMessage } from 'element-plus';
@@ -181,7 +181,7 @@ const [PreviewModal, previewModalApi] = useVbenModal({
     <Grid>
       <template #toolbar-actions>
         <VbenButton @click="() => modalApi.setData(null).open()">
-          <IconifyIcon icon="material-symbols:add" class="mr-1 size-5" />
+          <Plus class="mr-1 size-5" />
           新增通知公告
         </VbenButton>
       </template>
