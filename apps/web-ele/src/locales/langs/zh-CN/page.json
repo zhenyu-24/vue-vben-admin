@@ -22,6 +22,8 @@
     "operaLog": "操作日志",
     "online": "在线用户",
     "redis": "Redis 监控",
-    "server": "服务器监控"
+    "server": "服务器监控",
+    "notice": "通知公告",
+    "config": "参数配置"
   }
 }
