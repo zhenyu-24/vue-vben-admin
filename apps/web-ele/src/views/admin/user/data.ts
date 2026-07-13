@@ -2,9 +2,9 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 import type { SysUserResult } from '#/api';
 
-import { ElMessage } from 'element-plus';
-
 import { $t } from '@vben/locales';
+
+import { ElMessage } from 'element-plus';
 
 import { updateSysUserPermissionApi } from '#/api';
 
@@ -53,8 +53,8 @@ export function useColumns(
 ): VxeGridProps['columns'] {
   return [
     { field: 'seq', title: $t('page.admin.userPage.column.seq'), type: 'seq', fixed: 'left', width: 50 },
-    { field: 'username', title: $t('page.admin.userPage.column.username'), fixed: 'left', width: 100 },
-    { field: 'nickname', title: $t('page.admin.userPage.column.nickname'), width: 100 },
+    { field: 'username', title: $t('page.admin.userPage.column.username'), fixed: 'left', sortable: true, width: 100 },
+    { field: 'nickname', title: $t('page.admin.userPage.column.nickname'), sortable: true, width: 100 },
     {
       field: 'avatar',
       title: $t('page.admin.userPage.column.avatar'),

@@ -58,6 +58,8 @@ export interface GetUsersParams {
   username?: string;
   phone?: string;
   status?: number;
+  sortBy?: string;
+  sortOrder?: string;
 }
 
 /** 分页用户列表（GET /v1/sys/users） */

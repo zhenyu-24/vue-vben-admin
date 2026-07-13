@@ -1,72 +1,46 @@
 <script setup lang="ts">
 import type { VbenFormProps } from '@vben/common-ui';
-
-import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type {
-  SysAddUserParams,
-  SysResetPasswordParams,
-  SysUpdateUserParams,
-} from '#/api';
+import type { VxeGridProps } from '#/adapter/vxe-table';
 import type { SysUserResult } from '#/api';
 
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, watch } from 'vue';
 
-import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import { Page, VbenButton, VbenModal } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
 import { $t, useI18n } from '@vben/locales';
 import { preferences } from '@vben/preferences';
 
 import { ElAvatar, ElMessage, ElTag, ElTooltip } from 'element-plus';
 
-import { useVbenForm } from '#/adapter/form';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import {
-  createSysUserApi,
-  deleteSysUserApi,
-  getAllSysDeptApi,
-  getAllSysRoleApi,
-  getUsersApi,
-  resetSysUserPasswordApi,
-  updateSysUserApi,
-} from '#/api';
-import {
-  useAddSchema,
-  useColumns,
-  useEditSchema,
-  useQuerySchema,
-  useResetPwdSchema,
-} from './data';
+import { deleteSysUserApi, getAllSysDeptApi, getAllSysRoleApi, getUsersApi } from '#/api';
+import { useColumns, useQuerySchema } from './data';
 
+import { useUserModals } from './useUserModal';
+
+// --- 查询表格 ---
 const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
-  submitButtonOptions: {
-    content: $t('common.query'),
-  },
-  schema: useQuerySchema(),
+  collapsed: true,  // 默认折叠
+  showCollapseButton: true, // 默认折叠
+  submitButtonOptions: { content: $t('common.query') }, // 查询按钮文案
+  schema: useQuerySchema(), // 查询表单
 };
 
-const gridOptions: VxeTableGridOptions<SysUserResult> = {
-  rowConfig: {
-    keyField: 'id',
-  },
-  checkboxConfig: {
-    highlight: true,
-  },
-  height: 'auto',
+// 表格设置
+const gridOptions: VxeGridProps<SysUserResult> = {
+  // 行唯一标识
+  rowConfig: { keyField: 'id' },
+  // 表头
+  columns: useColumns(onActionClick),
+  // 导出、打印
   exportConfig: {},
   printConfig: {},
-  toolbarConfig: {
-    export: true,
-    print: false,
-    refresh: true,
-    refreshOptions: {
-      code: 'query',
-    },
-    custom: true,
-    zoom: true,
-  },
-  columns: useColumns(onActionClick),
+  // 表格高度
+  height: 'auto',
+  minHeight: 200,
+  // 保留原始数据，方便导出
+  keepSource: true,
+  // 加载数据
   proxyConfig: {
     ajax: {
       query: async ({ page }, formValues) => {
@@ -78,13 +52,35 @@ const gridOptions: VxeTableGridOptions<SysUserResult> = {
       },
     },
   },
+  // 排序
+  sortConfig: {},
+  // 工具栏
+  toolbarConfig: {
+    export: true,
+    print: false,
+    refresh: true,
+    refreshOptions: { code: 'query' },
+    custom: true,
+    zoom: true,
+  },
 };
 
+// 使用设置
 const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
 
+// 刷新表格
 function onRefresh() {
   gridApi.query();
 }
+
+// --- 模态框（抽取到 composable） ---
+const {
+  EditForm, editModalApi, editUserId,
+  AddForm, addModalApi,
+  ResetPwdForm, resetPwdModalApi,
+  setFormSelectOptions,
+  updateSchemas,
+} = useUserModals(onRefresh);
 
 async function onActionClick({ code, row }: any) {
   switch (code) {
@@ -112,153 +108,20 @@ async function onActionClick({ code, row }: any) {
   }
 }
 
-const loadFormOptions = async () => {
-  const [roles, depts] = await Promise.all([
-    getAllSysRoleApi(),
-    getAllSysDeptApi(),
-  ]);
-  const setOpts = (api: typeof editFormApi) => {
-    const cur = [...(api.state?.schema ?? [])];
-    cur.forEach((item, idx) => {
-      if (item.fieldName === 'roles') {
-        cur[idx] = { ...item, componentProps: { ...item.componentProps, options: roles } };
-      } else if (item.fieldName === 'dept_id') {
-        cur[idx] = { ...item, componentProps: { ...item.componentProps, options: depts } };
-      }
-    });
-    api.setState({ schema: cur });
-  };
-  setOpts(editFormApi);
-  setOpts(addFormApi);
-};
-
-// --- 编辑用户 ---
-const [EditForm, editFormApi] = useVbenForm({
-  showDefaultActions: false,
-  schema: useEditSchema(),
-});
-
-const editUserId = ref<number>(0);
-
-const [editModal, editModalApi] = useVbenModal({
-  destroyOnClose: true,
-  async onConfirm() {
-    const { valid } = await editFormApi.validate();
-    if (valid) {
-      editModalApi.lock();
-      const data = await editFormApi.getValues<SysUpdateUserParams>();
-      data.dept_id = data.dept_id ?? null;
-      try {
-        await updateSysUserApi(editUserId.value, data);
-        ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
-        await editModalApi.close();
-        onRefresh();
-      } finally {
-        editModalApi.unlock();
-      }
-    }
-  },
-  onOpenChange(isOpen) {
-    if (isOpen) {
-      const data = editModalApi.getData<any>();
-      editFormApi.resetForm();
-      if (data) {
-        editFormApi.setValues({
-          ...data,
-          roles: data.roles?.map((item: any) => item.id) || [],
-          dept_id: data.dept?.id ?? undefined,
-        });
-      }
-    }
-  },
-});
-
-// --- 添加用户 ---
-const [AddForm, addFormApi] = useVbenForm({
-  showDefaultActions: false,
-  schema: useAddSchema(),
-});
-
-const [addModal, addModalApi] = useVbenModal({
-  destroyOnClose: true,
-  async onConfirm() {
-    const { valid } = await addFormApi.validate();
-    if (valid) {
-      addModalApi.lock();
-      const data = await addFormApi.getValues<SysAddUserParams>();
-      data.dept_id = data.dept_id ?? null;
-      try {
-        await createSysUserApi(data);
-        ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
-        await addModalApi.close();
-        onRefresh();
-      } finally {
-        addModalApi.unlock();
-      }
-    }
-  },
-  onOpenChange(isOpen) {
-    if (isOpen) {
-      addFormApi.resetForm();
-    }
-  },
-});
-
-// --- 重置密码 ---
-const [ResetPwdForm, resetPwdFormApi] = useVbenForm({
-  layout: 'vertical',
-  showDefaultActions: false,
-  schema: useResetPwdSchema(),
-});
-
-const [resetPwdModal, resetPwdModalApi] = useVbenModal({
-  destroyOnClose: true,
-  centered: true,
-  async onConfirm() {
-    const { valid } = await resetPwdFormApi.validate();
-    if (valid) {
-      resetPwdModalApi.lock();
-      const data = await resetPwdFormApi.getValues<SysResetPasswordParams>();
-      try {
-        await resetSysUserPasswordApi(editUserId.value, data);
-        ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
-        await resetPwdModalApi.close();
-      } finally {
-        resetPwdModalApi.unlock();
-      }
-    }
-  },
-  onOpenChange(isOpen) {
-    if (isOpen) {
-      resetPwdFormApi.resetForm();
-    }
-  },
-});
-
-onMounted(() => {
-  loadFormOptions();
+// --- 初始化 ---
+onMounted(async () => {
+  const [roles, depts] = await Promise.all([getAllSysRoleApi(), getAllSysDeptApi()]);
+  setFormSelectOptions(roles, depts);
 });
 
 const { locale } = useI18n();
-
 watch(locale, () => {
-  // Grid columns & operation buttons
   gridApi.setGridOptions({ columns: useColumns(onActionClick) });
-
-  // Query form schema + submit button
   gridApi.formApi.setState({
     schema: useQuerySchema(),
     submitButtonOptions: { content: $t('common.query') },
   });
-
-  // Edit form
-  editFormApi.setState({ schema: useEditSchema() });
-
-  // Add form
-  addFormApi.setState({ schema: useAddSchema() });
-
-  // Reset password form
-  resetPwdFormApi.setState({ schema: useResetPwdSchema() });
+  updateSchemas();
 });
 </script>
 
@@ -297,14 +160,14 @@ watch(locale, () => {
       </template>
     </Grid>
 
-    <editModal :title="$t('page.admin.userPage.modal.edit')">
+    <VbenModal :modal-api="editModalApi" :title="$t('page.admin.userPage.modal.edit')">
       <EditForm />
-    </editModal>
-    <addModal :title="$t('page.admin.userPage.modal.add')">
+    </VbenModal>
+    <VbenModal :modal-api="addModalApi" :title="$t('page.admin.userPage.modal.add')">
       <AddForm />
-    </addModal>
-    <resetPwdModal :title="$t('page.admin.userPage.modal.resetPassword')">
+    </VbenModal>
+    <VbenModal :modal-api="resetPwdModalApi" :title="$t('page.admin.userPage.modal.resetPassword')">
       <ResetPwdForm />
-    </resetPwdModal>
+    </VbenModal>
   </Page>
 </template>

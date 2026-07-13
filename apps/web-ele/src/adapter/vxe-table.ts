@@ -135,15 +135,18 @@ setupVbenVxeTable({
         // 列对齐方式
         let justify: string;
         switch (column.align) {
-          case 'center':
+          case 'center': {
             justify = 'center';
             break;
-          case 'left':
+          }
+          case 'left': {
             justify = 'start';
             break;
-          default:
+          }
+          default: {
             justify = 'end';
             break;
+          }
         }
 
         const defaultTextMap: Record<string, string> = {
@@ -224,8 +227,30 @@ setupVbenVxeTable({
   useVbenForm,
 });
 
+// 创建表格组件
 export const useVbenVxeGrid = <T extends Record<string, any>>(
   ...rest: Parameters<typeof useGrid<T, ComponentType, ComponentPropsMap>>
 ) => useGrid<T, ComponentType, ComponentPropsMap>(...rest);
+
+
+// 定义泛型函数
+
+// ============================================================
+// OnActionClickParams - 操作点击参数的类型
+// ============================================================
+// 描述操作按钮（如“编辑/删除”）被点击时，回调函数接收的参数格式。
+export type OnActionClickParams<T = Record<string, any>> = {
+  code: string;
+  row: T;
+};
+
+// ============================================================
+// 3. OnActionClickFn - 操作点击函数的类型
+// ============================================================
+// 它是一个函数类型，接收一个 OnActionClickParams 参数，没有返回值。
+// 当你写 onActionClick 回调时，可以用这个类型来约束它。
+export type OnActionClickFn<T = Record<string, any>> = (
+  params: OnActionClickParams<T>,
+) => void;
 
 export type * from '@vben/plugins/vxe-table';
