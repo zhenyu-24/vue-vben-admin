@@ -51,6 +51,19 @@ export async function updateMyInfoApi(data: UpdateMyInfoParams) {
   return requestClient.patch('/v1/sys/users/me', data);
 }
 
+/**
+ * 上传当前用户头像（POST /v1/user/me/avatar, multipart/form-data）
+ * @param file 头像文件（jpg/jpeg/png/gif/webp/svg, ≤5MB）
+ * @returns 上传文件信息 { url, size, original_name, ... }
+ */
+export async function uploadAvatarApi(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return requestClient.post('/v1/user/me/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+}
+
 /** 分页查询用户列表参数 */
 export interface GetUsersParams {
   page?: number;
