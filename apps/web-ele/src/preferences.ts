@@ -1,7 +1,4 @@
-import {
-  appCopyrightPreferences,
-  defineOverridesPreferences,
-} from '@vben/preferences';
+import { defineOverridesPreferences } from '@vben/preferences';
 
 /**
  * @description 项目配置文件
@@ -10,12 +7,23 @@ import {
  */
 export const overridesPreferences = defineOverridesPreferences({
   // overrides
+  // app名称
   app: {
     name: import.meta.env.VITE_APP_TITLE,
   },
+  // logo - 使用 public/ 下的本地文件
   logo: {
-    source: 'https://unpkg.com/@vbenjs/static-source@0.1.7/source/logo-v1.webp',
-    sourceDark: 'https://unpkg.com/@vbenjs/static-source@0.1.7/source/logo-v1-dark.webp',
+    source: '/logo-light.webp',
+    sourceDark: '/logo-dark.webp',
   },
-  copyright: appCopyrightPreferences,
+  // copyright - 从环境变量读取
+  copyright: {
+    companyName: import.meta.env.VITE_APP_COPYRIGHT_COMPANY,
+    companySiteLink: import.meta.env.VITE_APP_COPYRIGHT_LINK,
+    date: import.meta.env.VITE_APP_COPYRIGHT_DATE,
+    icp: import.meta.env.VITE_APP_ICP,
+    icpLink: import.meta.env.VITE_APP_ICP_LINK,
+    enable: true,
+    settingShow: true,
+  },
 });

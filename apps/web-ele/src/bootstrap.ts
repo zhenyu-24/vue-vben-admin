@@ -34,12 +34,9 @@ async function bootstrap(namespace: string) {
   // });
   const app = createApp(App);
 
-  // 注册Element Plus提供的v-loading指令
-  app.directive('loading', ElLoading.directive);
-
-  // 注册Vben提供的v-loading和v-spinning指令
+  // 注册v-loading指令
   registerLoadingDirective(app, {
-    loading: false, // Vben提供的v-loading指令和Element Plus提供的v-loading指令二选一即可，此处false表示不注册Vben提供的v-loading指令
+    loading: 'loading', // 在这里可以自定义指令名称，也可以明确提供false表示不注册这个指令
     spinning: 'spinning',
   });
 
