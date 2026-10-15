@@ -11,14 +11,4 @@ Keep business fields, payload conversion and API calls in each page. Reuse only 
 
 Department and role IDs can be Snowflake strings. Do not cast IDs to numbers. For department editing, derive the exact parent ID from tree links using `findParentId`; a numeric `parent_id` from the detail API can be rounded by JSON parsing.
 
-Verification from the repository root:
-
-```powershell
-pnpm exec vitest run apps/web-ele/src/views/admin
-$env:E2E_BROWSER_CHANNEL = 'msedge'
-$env:E2E_BASE_URL = 'http://127.0.0.1:5777'
-node apps/web-ele/e2e/organization.mjs
-node apps/web-ele/e2e/system-management.mjs
-```
-
-Both browser scripts intercept all `/api/` traffic with in-memory fixtures. They do not change the real database.
+Place all future tests and browser regression scripts under `apps/web-ele/test`, not alongside source files. See [the test directory conventions](../../../../test/README.md).
