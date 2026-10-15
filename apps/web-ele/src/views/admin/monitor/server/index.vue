@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { ServerMonitorResult } from '#/api';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -13,7 +12,9 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getServerMonitorApi } from '#/api';
 
 import DetailTable from '../../components/detail-table.vue';
-import { formatDuration } from '../format';
+import MetricSection from '../../components/metric-section.vue';
+import { useAsyncResource } from '../../shared/useAsyncResource';
+import { diskPercentage, formatDuration, usageColor } from '../format';
 
 interface DetailItem {
   fullWidth?: boolean;
@@ -22,18 +23,14 @@ interface DetailItem {
   value: string;
 }
 
-const loading = ref(true);
-const loadFailed = ref(false);
-const server = ref<ServerMonitorResult>();
-const numberFormatter = new Intl.NumberFormat('zh-CN', {
-  maximumFractionDigits: 2,
-});
+defineOptions({ name: 'Server' });
 
-function formatNumber(value: unknown) {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? numberFormatter.format(value)
-    : '--';
-}
+const {
+  data: server,
+  loading,
+  failed: loadFailed,
+  refresh: fetchServerData,
+} = useAsyncResource(getServerMonitorApi);
 
 const cpuStats = computed(() => [
   { label: '使用率', value: server.value?.cpu.usage, unit: '%', usage: true },
@@ -66,13 +63,13 @@ const systemFields = [
   ['arch', '系统架构'],
 ] as const;
 
-function createDetails(
-  fields: ReadonlyArray<readonly [string, string]>,
-  data?: Record<string, unknown>,
+function createDetails<T extends object>(
+  fields: ReadonlyArray<readonly [keyof T, string]>,
+  data?: T,
 ): DetailItem[] {
   if (!data) return [];
   return fields.map(([key, label]) => ({
-    key,
+    key: String(key),
     label,
     fullWidth: key === 'home',
     value:
@@ -111,31 +108,6 @@ const diskOptions: VxeTableGridOptions = {
 };
 const [DiskGrid] = useVbenVxeGrid({});
 
-function usageColor(value: unknown) {
-  const usage = Number(value);
-  if (!Number.isFinite(usage)) return undefined;
-  if (usage >= 90) return 'var(--el-color-danger)';
-  if (usage >= 80) return 'var(--el-color-warning)';
-  return 'var(--el-color-primary)';
-}
-
-function diskPercentage(value: unknown) {
-  const usage = Number.parseFloat(String(value));
-  return Number.isFinite(usage) ? Math.min(100, Math.max(0, usage)) : 0;
-}
-
-async function fetchServerData() {
-  loading.value = true;
-  loadFailed.value = false;
-  try {
-    server.value = await getServerMonitorApi();
-  } catch {
-    loadFailed.value = true;
-  } finally {
-    loading.value = false;
-  }
-}
-
 onMounted(fetchServerData);
 </script>
 
@@ -154,52 +126,12 @@ onMounted(fetchServerData);
         </ElButton>
       </ElAlert>
       <div class="grid min-w-0 gap-5 xl:grid-cols-2">
-        <ElCard v-loading="loading" class="min-w-0" shadow="never">
-          <template #header>
-            <h2 class="text-base font-semibold">CPU 信息</h2>
-          </template>
-          <div class="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
-            <div v-for="item in cpuStats" :key="item.label" class="min-w-0">
-              <p class="mb-2 text-sm text-muted-foreground">{{ item.label }}</p>
-              <p class="flex flex-wrap items-baseline gap-1.5">
-                <span
-                  class="text-2xl font-medium tabular-nums"
-                  :style="{
-                    color: item.usage ? usageColor(item.value) : undefined,
-                  }"
-                >
-                  {{ formatNumber(item.value) }}
-                </span>
-                <span class="text-sm text-muted-foreground">{{
-                  item.unit
-                }}</span>
-              </p>
-            </div>
-          </div>
-        </ElCard>
-        <ElCard v-loading="loading" class="min-w-0" shadow="never">
-          <template #header>
-            <h2 class="text-base font-semibold">内存信息</h2>
-          </template>
-          <div class="grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
-            <div v-for="item in memoryStats" :key="item.label" class="min-w-0">
-              <p class="mb-2 text-sm text-muted-foreground">{{ item.label }}</p>
-              <p class="flex flex-wrap items-baseline gap-1.5">
-                <span
-                  class="text-2xl font-medium tabular-nums"
-                  :style="{
-                    color: item.usage ? usageColor(item.value) : undefined,
-                  }"
-                >
-                  {{ formatNumber(item.value) }}
-                </span>
-                <span class="text-sm text-muted-foreground">{{
-                  item.unit
-                }}</span>
-              </p>
-            </div>
-          </div>
-        </ElCard>
+        <MetricSection title="CPU 信息" :loading="loading" :items="cpuStats" />
+        <MetricSection
+          title="内存信息"
+          :loading="loading"
+          :items="memoryStats"
+        />
       </div>
       <ElCard class="min-w-0" shadow="never">
         <template #header>

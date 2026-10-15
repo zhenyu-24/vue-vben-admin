@@ -18,6 +18,8 @@
     "log": "日志管理",
     "monitor": "系统监控",
     "user": "用户管理",
+    "dept": "部门管理",
+    "role": "角色管理",
     "userPage": {
       "modal": {
         "add": "添加用户",
@@ -56,7 +58,9 @@
       },
       "status": {
         "normal": "正常",
-        "disabled": "停用"
+        "disabled": "停用",
+        "enabledText": "已启用",
+        "disabledText": "已禁用"
       },
       "message": {
         "unbound": "未绑定",

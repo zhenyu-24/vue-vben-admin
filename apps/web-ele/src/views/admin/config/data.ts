@@ -187,6 +187,26 @@ export function getConfigFields(type: ConfigType) {
   return configDefinitions[type].sections.flatMap((section) => section.fields);
 }
 
+function getConfigKeys(type: ConfigType) {
+  return new Set([
+    configDefinitions[type].statusKey,
+    ...getConfigFields(type).map((field) => field.key),
+  ]);
+}
+
+export function getAvailableSections(
+  type: ConfigType,
+  configs: ConfigResult[],
+) {
+  const keys = new Set(configs.map((config) => config.key));
+  return configDefinitions[type].sections
+    .map((section) => ({
+      ...section,
+      fields: section.fields.filter((field) => keys.has(field.key)),
+    }))
+    .filter((section) => section.fields.length > 0);
+}
+
 export function createConfigValues(
   type: ConfigType,
   configs: ConfigResult[],
@@ -209,10 +229,7 @@ export function buildConfigUpdates(
   configs: ConfigResult[],
   values: ConfigValues,
 ): UpdateConfigParam[] {
-  const knownKeys = new Set([
-    configDefinitions[type].statusKey,
-    ...getConfigFields(type).map((field) => field.key),
-  ]);
+  const knownKeys = getConfigKeys(type);
   return configs
     .filter(
       ({ key, value }) =>
@@ -237,11 +254,7 @@ export function hasConfigChanges(
   values: ConfigValues,
 ): boolean {
   const original = createConfigValues(type, configs);
-  const knownKeys = [
-    configDefinitions[type].statusKey,
-    ...getConfigFields(type).map((field) => field.key),
-  ];
-  return knownKeys.some(
+  return [...getConfigKeys(type)].some(
     (key) => key in original && !Object.is(values[key], original[key]),
   );
 }

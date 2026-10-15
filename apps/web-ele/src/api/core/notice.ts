@@ -30,10 +30,9 @@ export interface CreateNoticeParams {
 export type UpdateNoticeParams = CreateNoticeParams;
 
 export async function getNoticeListApi(params: NoticeParams) {
-  return requestClient.get<PaginationResult<NoticeResult>>(
-    '/v1/sys/notices',
-    { params },
-  );
+  return requestClient.get<PaginationResult<NoticeResult>>('/v1/sys/notices', {
+    params,
+  });
 }
 
 export async function getNoticeApi(pk: number) {

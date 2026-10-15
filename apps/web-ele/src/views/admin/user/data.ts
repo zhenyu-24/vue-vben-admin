@@ -1,12 +1,14 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
-import type { SysUserResult } from '#/api';
+import type { SysDeptResult, SysRoleResult, SysUserResult } from '#/api';
 
 import { $t } from '@vben/locales';
 
 import { ElMessage } from 'element-plus';
 
 import { updateSysUserPermissionApi } from '#/api';
+
+import { departmentField } from '../shared/data';
 
 export function useQuerySchema(): VbenFormSchema[] {
   return [
@@ -23,7 +25,7 @@ export function useQuerySchema(): VbenFormSchema[] {
     {
       component: 'Select',
       componentProps: {
-        allowClear: true,
+        clearable: true,
         options: [
           { label: $t('page.admin.userPage.status.normal'), value: 1 },
           { label: $t('page.admin.userPage.status.disabled'), value: 0 },
@@ -35,26 +37,52 @@ export function useQuerySchema(): VbenFormSchema[] {
   ];
 }
 
-function createPermissionSwitch(type: string, props?: Record<string, any>) {
+function createPermissionSwitch(
+  type: string,
+  props?: { activeValue: boolean; inactiveValue: boolean },
+) {
   return {
     name: 'CellSwitch',
     attrs: {
-      async beforeChange(_checked: any, row: SysUserResult) {
+      async beforeChange(_checked: boolean | number, row: SysUserResult) {
         await updateSysUserPermissionApi(row.id, type);
         ElMessage.success($t('page.admin.userPage.message.operationSuccess'));
       },
     },
-    props,
+    props: {
+      inlinePrompt: true,
+      activeText: $t('page.admin.userPage.status.enabledText'),
+      inactiveText: $t('page.admin.userPage.status.disabledText'),
+      width: 76,
+      ...props,
+    },
   };
 }
 
 export function useColumns(
   onActionClick?: OnActionClickFn<SysUserResult>,
-): VxeGridProps['columns'] {
+): VxeGridProps<SysUserResult>['columns'] {
   return [
-    { field: 'seq', title: $t('page.admin.userPage.column.seq'), type: 'seq', fixed: 'left', width: 50 },
-    { field: 'username', title: $t('page.admin.userPage.column.username'), fixed: 'left', sortable: true, width: 100 },
-    { field: 'nickname', title: $t('page.admin.userPage.column.nickname'), sortable: true, width: 100 },
+    {
+      field: 'seq',
+      title: $t('page.admin.userPage.column.seq'),
+      type: 'seq',
+      fixed: 'left',
+      width: 50,
+    },
+    {
+      field: 'username',
+      title: $t('page.admin.userPage.column.username'),
+      fixed: 'left',
+      sortable: true,
+      width: 100,
+    },
+    {
+      field: 'nickname',
+      title: $t('page.admin.userPage.column.nickname'),
+      sortable: true,
+      width: 100,
+    },
     {
       field: 'avatar',
       title: $t('page.admin.userPage.column.avatar'),
@@ -78,7 +106,7 @@ export function useColumns(
       field: 'phone',
       title: $t('page.admin.userPage.column.phone'),
       width: 150,
-      formatter({ cellValue }: any) {
+      formatter({ cellValue }) {
         return cellValue || $t('page.admin.userPage.message.noData');
       },
     },
@@ -86,7 +114,7 @@ export function useColumns(
       field: 'email',
       title: $t('page.admin.userPage.column.email'),
       width: 150,
-      formatter({ cellValue }: any) {
+      formatter({ cellValue }) {
         return cellValue || $t('page.admin.userPage.message.noData');
       },
     },
@@ -123,14 +151,23 @@ export function useColumns(
         inactiveValue: false,
       }),
     },
-    { field: 'join_time', title: $t('page.admin.userPage.column.joinTime'), width: 168 },
-    { field: 'last_login_time', title: $t('page.admin.userPage.column.lastLogin'), width: 168 },
+    {
+      field: 'join_time',
+      title: $t('page.admin.userPage.column.joinTime'),
+      width: 168,
+    },
+    {
+      field: 'last_login_time',
+      title: $t('page.admin.userPage.column.lastLogin'),
+      width: 168,
+    },
     {
       field: 'operation',
       title: $t('page.admin.userPage.column.operation'),
       align: 'center',
       fixed: 'right',
       width: 150,
+      showOverflow: false,
       cellRender: {
         attrs: {
           nameField: 'username',
@@ -154,7 +191,29 @@ export function useColumns(
   ];
 }
 
-export function useEditSchema(): VbenFormSchema[] {
+function roleField(roles: SysRoleResult[]): VbenFormSchema {
+  return {
+    component: 'Select',
+    componentProps: {
+      class: 'w-full',
+      multiple: true,
+      filterable: true,
+      options: roles.map((role) => ({
+        ...role,
+        disabled: role.status !== 1,
+      })),
+      props: { label: 'name', value: 'id' },
+    },
+    fieldName: 'roles',
+    label: $t('page.admin.userPage.form.role'),
+  };
+}
+
+function useUserSchema(
+  editing: boolean,
+  roles: SysRoleResult[] = [],
+  departments: SysDeptResult[] = [],
+): VbenFormSchema[] {
   return [
     {
       component: 'Input',
@@ -166,8 +225,11 @@ export function useEditSchema(): VbenFormSchema[] {
       component: 'Input',
       fieldName: 'nickname',
       label: $t('page.admin.userPage.form.nickname'),
-      rules: 'required',
+      rules: editing ? 'required' : undefined,
     },
+    ...(editing
+      ? []
+      : [passwordField($t('page.admin.userPage.form.password'))]),
     {
       component: 'Input',
       fieldName: 'phone',
@@ -178,110 +240,43 @@ export function useEditSchema(): VbenFormSchema[] {
       fieldName: 'email',
       label: $t('page.admin.userPage.form.email'),
     },
-    {
-      component: 'Select',
-      componentProps: {
-        class: 'w-full',
-        multiple: true,
-        props: { label: 'name', value: 'id' },
-        filterOption: (input: string, option: any) => {
-          return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
-        },
-      },
-      fieldName: 'roles',
-      label: $t('page.admin.userPage.form.role'),
-    },
-    {
-      component: 'Select',
-      componentProps: {
-        class: 'w-full',
-        clearable: true,
-        placeholder: $t('page.admin.userPage.form.placeholder'),
-        props: { label: 'name', value: 'id' },
-        filterOption: (input: string, option: any) => {
-          return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
-        },
-      },
-      fieldName: 'dept_id',
-      label: $t('page.admin.userPage.form.dept'),
-    },
+    roleField(roles),
+    departmentField(
+      'dept_id',
+      $t('page.admin.userPage.form.dept'),
+      departments,
+      true,
+    ),
   ];
 }
 
-export function useAddSchema(): VbenFormSchema[] {
-  return [
-    {
-      component: 'Input',
-      fieldName: 'username',
-      label: $t('page.admin.userPage.form.username'),
-      rules: 'required',
+export function useEditSchema(
+  roles: SysRoleResult[] = [],
+  departments: SysDeptResult[] = [],
+) {
+  return useUserSchema(true, roles, departments);
+}
+
+export function useAddSchema(
+  roles: SysRoleResult[] = [],
+  departments: SysDeptResult[] = [],
+) {
+  return useUserSchema(false, roles, departments);
+}
+
+function passwordField(label: string): VbenFormSchema {
+  return {
+    component: 'Input',
+    componentProps: {
+      type: 'password',
+      showPassword: true,
     },
-    {
-      component: 'Input',
-      fieldName: 'nickname',
-      label: $t('page.admin.userPage.form.nickname'),
-    },
-    {
-      component: 'Input',
-      componentProps: {
-        type: 'password',
-        showPassword: true,
-      },
-      fieldName: 'password',
-      label: $t('page.admin.userPage.form.password'),
-      rules: 'required',
-    },
-    {
-      component: 'Input',
-      fieldName: 'phone',
-      label: $t('page.admin.userPage.form.phoneNumber'),
-    },
-    {
-      component: 'Input',
-      fieldName: 'email',
-      label: $t('page.admin.userPage.form.email'),
-    },
-    {
-      component: 'Select',
-      componentProps: {
-        class: 'w-full',
-        multiple: true,
-        props: { label: 'name', value: 'id' },
-        filterOption: (input: string, option: any) => {
-          return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
-        },
-      },
-      fieldName: 'roles',
-      label: $t('page.admin.userPage.form.role'),
-    },
-    {
-      component: 'Select',
-      componentProps: {
-        class: 'w-full',
-        clearable: true,
-        placeholder: $t('page.admin.userPage.form.placeholder'),
-        props: { label: 'name', value: 'id' },
-        filterOption: (input: string, option: any) => {
-          return option.name?.toLowerCase()?.includes(input.toLowerCase()) ?? false;
-        },
-      },
-      fieldName: 'dept_id',
-      label: $t('page.admin.userPage.form.dept'),
-    },
-  ];
+    fieldName: 'password',
+    label,
+    rules: 'required',
+  };
 }
 
 export function useResetPwdSchema(): VbenFormSchema[] {
-  return [
-    {
-      component: 'Input',
-      componentProps: {
-        type: 'password',
-        showPassword: true,
-      },
-      fieldName: 'password',
-      label: $t('page.admin.userPage.form.newPassword'),
-      rules: 'required',
-    },
-  ];
+  return [passwordField($t('page.admin.userPage.form.newPassword'))];
 }

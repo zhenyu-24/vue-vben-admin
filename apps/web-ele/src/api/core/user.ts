@@ -1,5 +1,7 @@
 import type { UserInfo } from '@vben/types';
 
+import type { PaginationResult, SysId } from '#/types/api';
+
 import { requestClient } from '#/api/request';
 
 /**
@@ -77,7 +79,9 @@ export interface GetUsersParams {
 
 /** 分页用户列表（GET /v1/sys/users） */
 export async function getUsersApi(params?: GetUsersParams) {
-  return requestClient.get('/v1/sys/users', { params });
+  return requestClient.get<PaginationResult<SysUserResult>>('/v1/sys/users', {
+    params,
+  });
 }
 
 // ------ 用户管理 CRUD ------
@@ -85,7 +89,7 @@ export async function getUsersApi(params?: GetUsersParams) {
 export interface SysUserResult {
   id: number;
   uuid: string;
-  dept_id?: number;
+  dept_id?: null | SysId;
   username: string;
   nickname: string;
   email?: string;
@@ -97,18 +101,18 @@ export interface SysUserResult {
   is_multi_login: boolean;
   join_time: string;
   last_login_time: string;
-  dept?: { id: number; name: string };
-  roles: { id: number; name: string }[];
+  dept?: null | { id: SysId; name: string };
+  roles: { id: SysId; name: string }[];
 }
 
 export interface SysUpdateUserParams {
-  dept_id?: number;
+  dept_id?: null | SysId;
   username: string;
   nickname: string;
-  avatar?: string;
-  email?: string;
-  phone?: string;
-  roles: number[];
+  avatar?: null | string;
+  email?: null | string;
+  phone?: null | string;
+  roles: SysId[];
 }
 
 export interface SysAddUserParams extends SysUpdateUserParams {

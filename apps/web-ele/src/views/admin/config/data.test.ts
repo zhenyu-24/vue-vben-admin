@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildConfigUpdates,
   createConfigValues,
+  getAvailableSections,
   hasConfigChanges,
   validateConfigField,
 } from './data';
@@ -22,6 +23,20 @@ function config(key: string, value: string): ConfigResult {
 }
 
 describe('parameter configuration', () => {
+  it('renders only configured fields and omits empty sections', () => {
+    expect(
+      getAvailableSections('USER_SECURITY', [
+        config('USER_LOCK_THRESHOLD', '5'),
+        config('FUTURE_CONFIG', 'keep'),
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        title: '登录失败保护',
+        fields: [expect.objectContaining({ key: 'USER_LOCK_THRESHOLD' })],
+      }),
+    ]);
+    expect(getAvailableSections('EMAIL', [])).toEqual([]);
+  });
   it('parses numeric fields without changing status and boolean strings', () => {
     const configs = [
       config('USER_SECURITY_CONFIG_STATUS', '1'),

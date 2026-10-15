@@ -1,4 +1,4 @@
-import type { PaginationResult } from '#/types/api';
+import type { PaginationResult, SysId } from '#/types/api';
 
 import { requestClient } from '#/api/request';
 
@@ -11,7 +11,7 @@ export interface LoginLogParams {
 }
 
 export interface LoginLogResult {
-  id: number;
+  id: SysId;
   username: string;
   status: number;
   ip: string;
@@ -27,7 +27,7 @@ export interface LoginLogResult {
 export type OperaLogParams = LoginLogParams;
 
 export interface OperaLogResult {
-  id: number;
+  id: SysId;
   trace_id: string;
   username?: string;
   method: string;
@@ -50,23 +50,21 @@ export interface OperaLogResult {
 }
 
 export async function getLoginLogListApi(params: LoginLogParams) {
-  return requestClient.get<PaginationResult<LoginLogResult>>(
-    '/v1/logs/login',
-    { params },
-  );
+  return requestClient.get<PaginationResult<LoginLogResult>>('/v1/logs/login', {
+    params,
+  });
 }
 
-export async function deleteLoginLogApi(pks: number[]) {
+export async function deleteLoginLogApi(pks: SysId[]) {
   return requestClient.delete('/v1/logs/login', { data: { pks } });
 }
 
 export async function getOperaLogListApi(params: OperaLogParams) {
-  return requestClient.get<PaginationResult<OperaLogResult>>(
-    '/v1/logs/opera',
-    { params },
-  );
+  return requestClient.get<PaginationResult<OperaLogResult>>('/v1/logs/opera', {
+    params,
+  });
 }
 
-export async function deleteOperaLogApi(pks: number[]) {
+export async function deleteOperaLogApi(pks: SysId[]) {
   return requestClient.delete('/v1/logs/opera', { data: { pks } });
 }

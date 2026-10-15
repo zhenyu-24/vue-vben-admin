@@ -1,97 +1,39 @@
 <script lang="ts" setup>
-import type { VbenFormProps } from '@vben/common-ui';
+import type { AdminGridApi } from '../../shared/useAdminGrid';
 
-import type {
-  OnActionClickParams,
-  VxeGridListeners,
-  VxeTableGridOptions,
-} from '#/adapter/vxe-table';
+import type { OnActionClickParams } from '#/adapter/vxe-table';
 import type { OperaLogResult } from '#/api';
 
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
-import {
-  confirm,
-  JsonViewer,
-  Page,
-  useVbenDrawer,
-  VbenButton,
-} from '@vben/common-ui';
-import { $t } from '@vben/locales';
+import { JsonViewer, Page, useVbenDrawer, VbenButton } from '@vben/common-ui';
 import { usePreferences } from '@vben/preferences';
 
 import { Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElTag } from 'element-plus';
 
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteOperaLogApi, getOperaLogListApi } from '#/api';
 
 import DetailTable from '../../components/detail-table.vue';
+import { pagedQuery, useAdminGrid } from '../../shared/useAdminGrid';
+import { useBatchDelete } from '../../shared/useBatchDelete';
 import { querySchema, useColumns } from './data';
 
-const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
-  submitButtonOptions: {
-    content: $t('common.query'),
-  },
-  schema: querySchema,
-};
+defineOptions({ name: 'OperaLog' });
 
-const gridOptions: VxeTableGridOptions<OperaLogResult> = {
-  rowConfig: {
-    keyField: 'id',
-  },
-  checkboxConfig: {
-    highlight: true,
-  },
-  height: 'auto',
-  exportConfig: {},
-  printConfig: {},
-  toolbarConfig: {
-    export: true,
-    print: false,
-    refresh: true,
-    refreshOptions: {
-      code: 'query',
-    },
-    custom: true,
-    zoom: true,
-  },
-  columns: useColumns(onActionClick),
-  proxyConfig: {
-    ajax: {
-      query: async ({ page }, formValues) => {
-        return await getOperaLogListApi({
-          page: page.currentPage,
-          size: page.pageSize,
-          ...formValues,
-        });
-      },
-    },
-  },
-};
-
-const gridEvents: VxeGridListeners<OperaLogResult> = {
-  checkboxChange: () => {
-    const data = gridApi.grid.getCheckboxRecords(true);
-    checkedRows.value = data.map((item: any) => item.id);
-  },
-  checkboxAll: () => {
-    const data = gridApi.grid.getCheckboxRecords(true);
-    checkedRows.value = data.map((item: any) => item.id);
-  },
-};
-
-const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions,
-  gridOptions,
+const { gridEvents, disabled, loading, deleteSelected, onQuery } =
+  useBatchDelete<OperaLogResult>(
+    (): AdminGridApi<OperaLogResult> => gridApi,
+    deleteOperaLogApi,
+  );
+const [Grid, gridApi] = useAdminGrid<OperaLogResult>({
+  columns: () => useColumns(onActionClick),
+  schema: () => querySchema,
+  query: pagedQuery(getOperaLogListApi),
   gridEvents,
+  onQuery,
+  gridOptions: { checkboxConfig: { highlight: true } },
 });
-
-function onRefresh() {
-  gridApi.query();
-}
 
 function onActionClick({ code, row }: OnActionClickParams<OperaLogResult>) {
   switch (code) {
@@ -149,33 +91,6 @@ const operaLogDescItems = computed(() => {
     { key: 'msg', label: '响应消息', value: d?.msg, fullWidth: true },
   ];
 });
-
-const checkedRows = ref<number[]>([]);
-const deleteDisable = ref<boolean>(true);
-const deleteLoading = ref<boolean>(false);
-
-const deleteOperaLog = async () => {
-  confirm({
-    icon: 'warning',
-    content: '确定删除已勾选的记录吗？',
-  }).then(async () => {
-    deleteLoading.value = true;
-    try {
-      await deleteOperaLogApi(checkedRows.value);
-      ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-      onRefresh();
-      deleteDisable.value = true;
-    } catch {
-      // ignore
-    } finally {
-      deleteLoading.value = false;
-    }
-  });
-};
-
-watch(checkedRows, () => {
-  deleteDisable.value = checkedRows.value.length === 0;
-});
 </script>
 
 <template>
@@ -184,9 +99,9 @@ watch(checkedRows, () => {
       <template #toolbar-actions>
         <VbenButton
           variant="destructive"
-          :disabled="deleteDisable"
-          :loading="deleteLoading"
-          @click="deleteOperaLog"
+          :disabled="disabled"
+          :loading="loading"
+          @click="deleteSelected"
         >
           <Delete class="size-5" />
           删除日志

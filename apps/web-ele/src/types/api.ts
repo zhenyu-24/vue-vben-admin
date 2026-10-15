@@ -1,3 +1,5 @@
+export type SysId = number | string;
+
 /** 分页返回结果包装 */
 export interface PaginationResult<T> {
   items: T[];

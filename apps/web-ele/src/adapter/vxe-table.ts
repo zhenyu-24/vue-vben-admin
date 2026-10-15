@@ -175,19 +175,20 @@ setupVbenVxeTable({
         }
 
         function renderBtn(opt: any, listen = true) {
+          const { code, text, disabled: _disabled, ...buttonProps } = opt;
           return h(
             ElButton,
             {
-              ...opt,
+              ...buttonProps,
               size: 'small',
-              type: opt.code === 'delete' ? 'danger' : 'primary',
+              type: code === 'delete' ? 'danger' : 'primary',
               link: true,
               disabled: resolveDisabled(opt),
               onClick: listen
-                ? () => attrs?.onClick?.({ code: opt.code, row })
+                ? () => attrs?.onClick?.({ code, row })
                 : undefined,
             },
-            { default: () => opt.text },
+            { default: () => text },
           );
         }
 
@@ -231,7 +232,6 @@ setupVbenVxeTable({
 export const useVbenVxeGrid = <T extends Record<string, any>>(
   ...rest: Parameters<typeof useGrid<T, ComponentType, ComponentPropsMap>>
 ) => useGrid<T, ComponentType, ComponentPropsMap>(...rest);
-
 
 // 定义泛型函数
 

@@ -1,31 +1,9 @@
-import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 import type { OperaLogResult } from '#/api';
 
-export const querySchema: VbenFormSchema[] = [
-  {
-    component: 'Input',
-    fieldName: 'username',
-    label: '用户名',
-  },
-  {
-    component: 'Input',
-    fieldName: 'ip',
-    label: 'IP 地址',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      allowClear: true,
-      options: [
-        { label: '正常', value: 1 },
-        { label: '异常', value: 0 },
-      ],
-    },
-    fieldName: 'status',
-    label: '状态',
-  },
-];
+import { createLogQuerySchema, logStatusOptions } from '../data';
+
+export const querySchema = createLogQuerySchema(['正常', '异常']);
 
 export function useColumns(
   onActionClick?: OnActionClickFn<OperaLogResult>,
@@ -59,10 +37,7 @@ export function useColumns(
       title: '状态',
       cellRender: {
         name: 'CellTag',
-        options: [
-          { color: 'success', label: '成功', value: 1 },
-          { color: 'error', label: '失败', value: 0 },
-        ],
+        options: logStatusOptions,
       },
     },
     { field: 'cost_time', title: '耗时（ms）' },

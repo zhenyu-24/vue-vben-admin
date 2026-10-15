@@ -18,6 +18,8 @@
     "log": "Log Management",
     "monitor": "System Monitor",
     "user": "User Management",
+    "dept": "Department Management",
+    "role": "Role Management",
     "userPage": {
       "modal": {
         "add": "Add User",
@@ -56,7 +58,9 @@
       },
       "status": {
         "normal": "Normal",
-        "disabled": "Disabled"
+        "disabled": "Disabled",
+        "enabledText": "Enabled",
+        "disabledText": "Disabled"
       },
       "message": {
         "unbound": "Unbound",

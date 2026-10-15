@@ -5,7 +5,7 @@ import type { ConfigType, ConfigValues } from './data';
 
 import type { ConfigResult } from '#/api';
 
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { useAccess } from '@vben/access';
 import { useUserStore } from '@vben/stores';
@@ -27,10 +27,12 @@ import {
 
 import { getAllConfigApi, updateConfigApi } from '#/api';
 
+import { useAsyncResource } from '../shared/useAsyncResource';
 import {
   buildConfigUpdates,
   configDefinitions,
   createConfigValues,
+  getAvailableSections,
   hasConfigChanges,
   validateConfigField,
 } from './data';
@@ -41,10 +43,16 @@ const { hasAccessByCodes } = useAccess();
 const userStore = useUserStore();
 const definition = computed(() => configDefinitions[props.type]);
 const formRef = ref<FormInstance>();
-const configs = ref<ConfigResult[]>([]);
+const {
+  data: configs,
+  loading,
+  failed: loadFailed,
+  refresh: fetchConfigList,
+} = useAsyncResource(
+  () => getAllConfigApi({ type: props.type }),
+  [] as ConfigResult[],
+);
 const values = ref<ConfigValues>({});
-const loading = ref(true);
-const loadFailed = ref(false);
 const editing = ref(false);
 const saving = ref(false);
 const canEdit = computed(
@@ -62,14 +70,7 @@ const availableKeys = computed(
   () => new Set(configs.value.map((config) => config.key)),
 );
 const sections = computed(() =>
-  definition.value.sections
-    .map((section) => ({
-      ...section,
-      fields: section.fields.filter((field) =>
-        availableKeys.value.has(field.key),
-      ),
-    }))
-    .filter((section) => section.fields.length > 0),
+  getAvailableSections(props.type, configs.value),
 );
 const rules = computed<FormRules>(() =>
   Object.fromEntries(
@@ -95,20 +96,22 @@ const rules = computed<FormRules>(() =>
 );
 
 watch(dirty, (value) => emit('dirtyChange', value));
-
-async function fetchConfigList() {
-  loading.value = true;
-  loadFailed.value = false;
-  try {
-    configs.value = await getAllConfigApi({ type: props.type });
-    values.value = createConfigValues(props.type, configs.value);
+watch(
+  configs,
+  (items) => {
+    values.value = createConfigValues(props.type, items);
     editing.value = false;
-  } catch {
-    loadFailed.value = true;
-  } finally {
-    loading.value = false;
-  }
-}
+  },
+  { flush: 'sync' },
+);
+watch(
+  () => props.type,
+  () => {
+    configs.value = [];
+    void fetchConfigList();
+  },
+  { immediate: true },
+);
 
 function cancelEditing() {
   values.value = createConfigValues(props.type, configs.value);
@@ -143,8 +146,6 @@ async function saveConfig() {
     saving.value = false;
   }
 }
-
-onMounted(fetchConfigList);
 </script>
 
 <template>

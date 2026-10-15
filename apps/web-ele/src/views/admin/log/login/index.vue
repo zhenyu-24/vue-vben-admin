@@ -1,114 +1,32 @@
 <script lang="ts" setup>
-import type { VbenFormProps } from '@vben/common-ui';
+import type { AdminGridApi } from '../../shared/useAdminGrid';
 
-import type {
-  VxeGridListeners,
-  VxeTableGridOptions,
-} from '#/adapter/vxe-table';
 import type { LoginLogResult } from '#/api';
 
-import { ref, watch } from 'vue';
+import { Page, VbenButton } from '@vben/common-ui';
 
-import { confirm, Page, VbenButton } from '@vben/common-ui';
 import { Delete } from '@element-plus/icons-vue';
-import { $t } from '@vben/locales';
 
-import { ElMessage } from 'element-plus';
-
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { deleteLoginLogApi, getLoginLogListApi } from '#/api';
 
+import { pagedQuery, useAdminGrid } from '../../shared/useAdminGrid';
+import { useBatchDelete } from '../../shared/useBatchDelete';
 import { columns, querySchema } from './data';
 
-const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
-  submitButtonOptions: {
-    content: $t('common.query'),
-  },
-  schema: querySchema,
-};
+defineOptions({ name: 'LoginLog' });
 
-const gridOptions: VxeTableGridOptions<LoginLogResult> = {
-  rowConfig: {
-    keyField: 'id',
-  },
-  checkboxConfig: {
-    highlight: true,
-  },
-  height: 'auto',
-  exportConfig: {},
-  printConfig: {},
-  toolbarConfig: {
-    export: true,
-    print: false,
-    refresh: true,
-    refreshOptions: {
-      code: 'query',
-    },
-    custom: true,
-    zoom: true,
-  },
-  columns,
-  proxyConfig: {
-    ajax: {
-      query: async ({ page }, formValues) => {
-        return await getLoginLogListApi({
-          page: page.currentPage,
-          size: page.pageSize,
-          ...formValues,
-        });
-      },
-    },
-  },
-};
-
-const gridEvents: VxeGridListeners<LoginLogResult> = {
-  checkboxChange: () => {
-    const data = gridApi.grid.getCheckboxRecords(true);
-    checkedRows.value = data.map((item: any) => item.id);
-  },
-  checkboxAll: () => {
-    const data = gridApi.grid.getCheckboxRecords(true);
-    checkedRows.value = data.map((item: any) => item.id);
-  },
-};
-
-const [Grid, gridApi] = useVbenVxeGrid({
-  formOptions,
-  gridOptions,
+const { gridEvents, disabled, loading, deleteSelected, onQuery } =
+  useBatchDelete<LoginLogResult>(
+    (): AdminGridApi<LoginLogResult> => gridApi,
+    deleteLoginLogApi,
+  );
+const [Grid, gridApi] = useAdminGrid<LoginLogResult>({
+  columns: () => columns,
+  schema: () => querySchema,
+  query: pagedQuery(getLoginLogListApi),
   gridEvents,
-});
-
-function onRefresh() {
-  gridApi.query();
-}
-
-const checkedRows = ref<number[]>([]);
-const deleteDisable = ref<boolean>(true);
-const deleteLoading = ref<boolean>(false);
-
-const deleteLoginLog = async () => {
-  confirm({
-    icon: 'warning',
-    content: '确定删除已勾选的记录吗？',
-  }).then(async () => {
-    deleteLoading.value = true;
-    try {
-      await deleteLoginLogApi(checkedRows.value);
-      ElMessage.success($t('ui.actionMessage.deleteSuccess'));
-      onRefresh();
-      deleteDisable.value = true;
-    } catch {
-      // ignore
-    } finally {
-      deleteLoading.value = false;
-    }
-  });
-};
-
-watch(checkedRows, () => {
-  deleteDisable.value = checkedRows.value.length === 0;
+  onQuery,
+  gridOptions: { checkboxConfig: { highlight: true } },
 });
 </script>
 
@@ -118,9 +36,9 @@ watch(checkedRows, () => {
       <template #toolbar-actions>
         <VbenButton
           variant="destructive"
-          :disabled="deleteDisable"
-          :loading="deleteLoading"
-          @click="deleteLoginLog"
+          :disabled="disabled"
+          :loading="loading"
+          @click="deleteSelected"
         >
           <Delete class="size-5" />
           删除日志

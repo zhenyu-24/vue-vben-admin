@@ -1,9 +1,26 @@
-import type { NoticeResult } from '#/api';
-
 import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
+import type { CreateNoticeParams, NoticeResult } from '#/api';
 
-import { h } from 'vue';
+const typeOptions = [
+  { color: 'success', label: '通知', value: 0 },
+  { color: 'warning', label: '公告', value: 1 },
+];
+const statusOptions = [
+  { color: 'success', label: '显示', value: 1 },
+  { color: 'info', label: '隐藏', value: 0 },
+];
+
+export function noticeValues(
+  data?: null | Partial<CreateNoticeParams>,
+): CreateNoticeParams {
+  return {
+    title: data?.title ?? '',
+    type: data?.type ?? 0,
+    status: data?.status ?? 1,
+    content: data?.content ?? '',
+  };
+}
 
 export const querySchema: VbenFormSchema[] = [
   {
@@ -14,11 +31,8 @@ export const querySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      allowClear: true,
-      options: [
-        { label: '通知', value: 0 },
-        { label: '公告', value: 1 },
-      ],
+      clearable: true,
+      options: typeOptions,
     },
     fieldName: 'type',
     label: '类型',
@@ -26,11 +40,8 @@ export const querySchema: VbenFormSchema[] = [
   {
     component: 'Select',
     componentProps: {
-      allowClear: true,
-      options: [
-        { label: '显示', value: 1 },
-        { label: '隐藏', value: 0 },
-      ],
+      clearable: true,
+      options: statusOptions,
     },
     fieldName: 'status',
     label: '状态',
@@ -53,10 +64,7 @@ export function useColumns(
       title: '类型',
       cellRender: {
         name: 'CellTag',
-        options: [
-          { color: 'success', label: '通知', value: 0 },
-          { color: 'warning', label: '公告', value: 1 },
-        ],
+        options: typeOptions,
       },
     },
     {
@@ -64,10 +72,7 @@ export function useColumns(
       title: '状态',
       cellRender: {
         name: 'CellTag',
-        options: [
-          { color: 'success', label: '显示', value: 1 },
-          { color: 'info', label: '隐藏', value: 0 },
-        ],
+        options: statusOptions,
       },
     },
     {
@@ -113,10 +118,7 @@ export const schema: VbenFormSchema[] = [
     formItemClass: 'col-span-1 md:col-span-1',
     componentProps: {
       buttonStyle: 'solid',
-      options: [
-        { label: '通知', value: 0 },
-        { label: '公告', value: 1 },
-      ],
+      options: typeOptions,
       optionType: 'button',
     },
     defaultValue: 0,
@@ -128,10 +130,7 @@ export const schema: VbenFormSchema[] = [
     component: 'RadioGroup',
     componentProps: {
       buttonStyle: 'solid',
-      options: [
-        { label: '显示', value: 1 },
-        { label: '隐藏', value: 0 },
-      ],
+      options: statusOptions,
       optionType: 'button',
     },
     defaultValue: 1,

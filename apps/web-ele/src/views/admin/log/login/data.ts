@@ -1,30 +1,8 @@
-import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
-export const querySchema: VbenFormSchema[] = [
-  {
-    component: 'Input',
-    fieldName: 'username',
-    label: '用户名',
-  },
-  {
-    component: 'Input',
-    fieldName: 'ip',
-    label: 'IP 地址',
-  },
-  {
-    component: 'Select',
-    componentProps: {
-      allowClear: true,
-      options: [
-        { label: '成功', value: 1 },
-        { label: '失败', value: 0 },
-      ],
-    },
-    fieldName: 'status',
-    label: '状态',
-  },
-];
+import { createLogQuerySchema, logStatusOptions } from '../data';
+
+export const querySchema = createLogQuerySchema();
 
 export const columns: VxeGridProps['columns'] = [
   { field: 'checkbox', type: 'checkbox', align: 'left', width: 50 },
@@ -40,10 +18,7 @@ export const columns: VxeGridProps['columns'] = [
     title: '状态',
     cellRender: {
       name: 'CellTag',
-      options: [
-        { color: 'success', label: '成功', value: 1 },
-        { color: 'error', label: '失败', value: 0 },
-      ],
+      options: logStatusOptions,
     },
   },
   { field: 'ip', title: 'IP 地址' },

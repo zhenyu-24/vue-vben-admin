@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import type { EchartsUIType } from '@vben/plugins/echarts';
 
+import type { RedisCommandStat } from '#/api';
+
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
 
-const props = defineProps<{ stats: Record<string, any>[] }>();
+const props = defineProps<{ stats: RedisCommandStat[] }>();
 const chartRef = ref<EchartsUIType>();
 const { renderEcharts } = useEcharts(chartRef);
 const commands = computed(() =>

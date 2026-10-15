@@ -12,6 +12,8 @@ import { ElIcon, ElMessageBox, ElTabPane, ElTabs } from 'element-plus';
 
 import ConfigSection from './config-section.vue';
 
+defineOptions({ name: 'AdminConfig' });
+
 const activeTab = ref<ConfigType>('USER_SECURITY');
 const isNarrowScreen = useMediaQuery('(max-width: 760px)');
 const dirtyGroups = reactive<Partial<Record<ConfigType, boolean>>>({});

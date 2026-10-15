@@ -1,90 +1,46 @@
 <script lang="ts" setup>
-import type { VbenFormProps } from '@vben/common-ui';
+import type { OnActionClickParams } from '#/adapter/vxe-table';
+import type { CreateNoticeParams, NoticeResult } from '#/api';
 
-import type {
-  CreateNoticeParams,
-  NoticeResult,
-  UpdateNoticeParams,
-} from '#/api';
-
-import type {
-  OnActionClickParams,
-  VxeTableGridOptions,
-} from '#/adapter/vxe-table';
-
-import { computed, nextTick, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
-import { marked } from 'marked';
-import { Plus } from '@element-plus/icons-vue';
 import { $t } from '@vben/locales';
 
-import { ElMessage } from 'element-plus';
+import { Plus } from '@element-plus/icons-vue';
+import { marked } from 'marked';
 
 import { useVbenForm } from '#/adapter/form';
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
-
 import {
   createNoticeApi,
   deleteNoticeApi,
   getNoticeListApi,
   updateNoticeApi,
 } from '#/api';
-import { querySchema, schema, useColumns } from './data';
 
-const formOptions: VbenFormProps = {
-  collapsed: true,
-  showCollapseButton: true,
-  submitButtonOptions: {
-    content: $t('common.query'),
-  },
-  schema: querySchema,
-};
+import { pagedQuery, useAdminGrid } from '../shared/useAdminGrid';
+import { useDeleteRow } from '../shared/useDeleteRow';
+import { useFormSubmit } from '../shared/useFormSubmit';
+import { noticeValues, querySchema, schema, useColumns } from './data';
 
-const gridOptions: VxeTableGridOptions<NoticeResult> = {
-  rowConfig: {
-    keyField: 'id',
-  },
-  checkboxConfig: {
-    highlight: true,
-  },
-  height: 'auto',
-  exportConfig: {},
-  printConfig: {},
-  toolbarConfig: {
-    export: true,
-    print: true,
-    refresh: true,
-    refreshOptions: {
-      code: 'query',
-    },
-    custom: true,
-    zoom: true,
-  },
-  columns: useColumns(onActionClick),
-  proxyConfig: {
-    ajax: {
-      query: async ({ page }, formValues) => {
-        return await getNoticeListApi({
-          page: page.currentPage,
-          size: page.pageSize,
-          ...formValues,
-        });
-      },
-    },
-  },
-};
+defineOptions({ name: 'AdminNotice' });
 
-const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
+const [Grid, gridApi] = useAdminGrid<NoticeResult>({
+  columns: () => useColumns(onActionClick),
+  schema: () => querySchema,
+  query: pagedQuery(getNoticeListApi),
+  gridOptions: { printConfig: {}, toolbarConfig: { print: true } },
+});
+const deleteRow = useDeleteRow<NoticeResult>(
+  gridApi,
+  (id) => deleteNoticeApi([id]),
+  (row) => `已删除 ${row.title}`,
+);
 
 function onActionClick({ code, row }: OnActionClickParams<NoticeResult>) {
   switch (code) {
     case 'delete': {
-      deleteNoticeApi([row.id]).then(() => {
-        ElMessage.success(`已删除 ${row.title}`);
-        onRefresh();
-      });
-      break;
+      return deleteRow(row);
     }
     case 'edit': {
       modalApi.setData(row).open();
@@ -97,11 +53,6 @@ function onActionClick({ code, row }: OnActionClickParams<NoticeResult>) {
   }
 }
 
-function onRefresh() {
-  gridApi.query();
-}
-
-// --- 新增/编辑弹窗 ---
 const [Form, formApi] = useVbenForm({
   wrapperClass: 'md:grid-cols-2',
   layout: 'vertical',
@@ -109,69 +60,49 @@ const [Form, formApi] = useVbenForm({
   schema,
 });
 
-interface formNoticeParams extends UpdateNoticeParams {
-  id?: number;
-}
-
-const formData = ref<formNoticeParams>();
+const editing = ref<NoticeResult>();
 
 const modalTitle = computed(() => {
-  return formData.value?.id
+  return editing.value
     ? $t('ui.actionTitle.edit', ['通知公告'])
     : $t('ui.actionTitle.create', ['通知公告']);
 });
 
 const [Modal, modalApi] = useVbenModal({
   destroyOnClose: true,
-  class: 'w-5/12',
-  async onConfirm() {
-    const { valid } = await formApi.validate();
-    if (valid) {
-      modalApi.lock();
-      const data = await formApi.getValues<CreateNoticeParams>();
-      try {
-        await (formData.value?.id
-          ? updateNoticeApi(formData.value?.id, data)
-          : createNoticeApi(data));
-        ElMessage.success('操作成功');
-        await modalApi.close();
-        onRefresh();
-      } finally {
-        modalApi.unlock();
-      }
-    }
-  },
-  onOpenChange(isOpen) {
-    if (isOpen) {
-      const data = modalApi.getData<formNoticeParams>();
-      formApi.resetForm();
-      if (data) {
-        formData.value = data;
-        formApi.setValues(data);
-      }
-    }
+  class: 'w-[640px] max-w-[calc(100vw-2rem)]',
+  onConfirm: useFormSubmit<CreateNoticeParams>({
+    form: () => formApi,
+    modal: (): ReturnType<typeof useVbenModal>[1] => modalApi,
+    save: (values) =>
+      editing.value
+        ? updateNoticeApi(editing.value.id, noticeValues(values))
+        : createNoticeApi(noticeValues(values)),
+    successMessage: () => '操作成功',
+    onSuccess: () => gridApi.query(),
+  }),
+  async onOpenChange(isOpen) {
+    if (!isOpen) return;
+    const data = modalApi.getData<Partial<NoticeResult>>();
+    editing.value = data.id === undefined ? undefined : (data as NoticeResult);
+    await formApi.resetForm();
+    await formApi.setValues(noticeValues(editing.value));
   },
 });
 
-// --- 预览弹窗 ---
-const preViewTitle = ref<string>('');
-const preViewContent = ref<string>('');
-const preViewHtml = ref<string>('');
+const preview = ref<NoticeResult>();
+const previewHtml = computed(() =>
+  marked.parse(preview.value?.content ?? '', { async: false, breaks: true }),
+);
 
 const [PreviewModal, previewModalApi] = useVbenModal({
   title: '通知公告预览',
-  class: 'w-5/12',
+  class: 'w-[640px] max-w-[calc(100vw-2rem)]',
   footer: false,
-  async onOpenChange(isOpen) {
-    if (isOpen) {
-      const data = previewModalApi.getData<formNoticeParams>();
-      if (data) {
-        preViewTitle.value = data.title;
-        preViewContent.value = data.content;
-        await nextTick();
-        preViewHtml.value = marked.parse(data.content || '', { breaks: true }) as string;
-      }
-    }
+  onOpenChange(isOpen) {
+    preview.value = isOpen
+      ? previewModalApi.getData<NoticeResult>()
+      : undefined;
   },
 });
 </script>
@@ -190,8 +121,11 @@ const [PreviewModal, previewModalApi] = useVbenModal({
       <Form />
     </Modal>
     <PreviewModal>
-      <div class="mb-3 text-center text-2xl font-bold">{{ preViewTitle }}</div>
-      <div class="prose prose-sm dark:prose-invert max-w-none break-words rounded border bg-gray-50 p-4 dark:bg-gray-900" v-html="preViewHtml"></div>
+      <div class="mb-3 text-center text-xl font-bold">{{ preview?.title }}</div>
+      <div
+        class="prose prose-sm dark:prose-invert max-w-none break-words rounded border bg-gray-50 p-4 dark:bg-gray-900"
+        v-html="previewHtml"
+      ></div>
     </PreviewModal>
   </Page>
 </template>
