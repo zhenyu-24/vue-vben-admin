@@ -4,63 +4,68 @@ import type { EchartsUIType } from '@vben/plugins/echarts';
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
-import { usePreferences } from '@vben/preferences';
 
-const props = defineProps({
-  stats: {
-    type: Array as () => Record<string, any>[],
-    default: () => [] as Record<string, any>[],
-  },
-});
-
-const { isDark } = usePreferences();
+const props = defineProps<{ stats: Record<string, any>[] }>();
 const chartRef = ref<EchartsUIType>();
 const { renderEcharts } = useEcharts(chartRef);
-
-const labelColor = computed(() =>
-  isDark.value ? 'rgba(255, 255, 255, 0.7)' : '#1F2329',
+const commands = computed(() =>
+  props.stats
+    .map((item) => ({ name: String(item.name), value: Number(item.value) }))
+    .filter((item) => Number.isFinite(item.value) && item.value > 0)
+    .toSorted((a, b) => b.value - a.value),
 );
 
-const renderChart = () => {
-  renderEcharts({
+function renderChart() {
+  const total = commands.value.reduce((sum, item) => sum + item.value, 0);
+  void renderEcharts({
+    color: ['#5ab1ef', '#b6a2de', '#67e0e3', '#2ec7c9'],
+    title: {
+      text: total ? total.toLocaleString('zh-CN') : '暂无命令统计',
+      subtext: total ? '调用次数' : '',
+      left: 'center',
+      top: '32%',
+      textStyle: { fontSize: total ? 24 : 14, fontWeight: 500 },
+      subtextStyle: { fontSize: 12 },
+      itemGap: 8,
+    },
+    legend: {
+      show: total > 0,
+      type: 'scroll',
+      bottom: 0,
+      left: 'center',
+      icon: 'circle',
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 18,
+      textStyle: { fontSize: 12 },
+    },
     series: [
       {
+        name: '命令调用',
         type: 'pie',
-        data: props.stats,
-        label: {
-          formatter: '{b}: {d}%',
-          fontSize: 14,
-          color: labelColor.value,
-        },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
-          },
-        },
+        center: ['50%', '42%'],
+        radius: ['45%', '65%'],
+        data: commands.value,
+        itemStyle: { borderRadius: 6, borderWidth: 2 },
+        label: { show: false },
+        labelLine: { show: false },
+        emphasis: { scaleSize: 5 },
+        animationEasing: 'exponentialInOut',
+        animationType: 'scale',
       },
     ],
     tooltip: {
       trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)',
+      confine: true,
+      formatter: '{b}<br/>{c} 次（{d}%）',
     },
   });
-};
+}
 
-onMounted(() => {
-  renderChart();
-});
-
-watch(
-  [isDark, () => props.stats],
-  () => {
-    renderChart();
-  },
-  { deep: false },
-);
+onMounted(renderChart);
+watch(commands, renderChart);
 </script>
 
 <template>
-  <EchartsUI ref="chartRef" height="350px" />
+  <EchartsUI ref="chartRef" height="300px" />
 </template>

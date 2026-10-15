@@ -1,25 +1,21 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
-import { Page } from '@vben/common-ui';
-import { $t } from '@vben/locales';
+import { AnalysisChartCard, Page } from '@vben/common-ui';
 
+import { useMediaQuery } from '@vueuse/core';
 import { ElCard, ElDescriptions, ElDescriptionsItem } from 'element-plus';
 
 import { getRedisMonitorApi } from '#/api';
+
+import { formatDuration } from '../format';
 import ActiveSeries from './components/active-series.vue';
 import CommandsSeries from './components/commands-series.vue';
 
 const loading = ref<boolean>(false);
 const redisInfo = ref<Record<string, any>>({});
 const redisStats = ref<Record<string, any>[]>([]);
-const usedMemory = ref<number>(0);
-const redisUsedMemory = computed(() => [
-  {
-    name: '已用内存',
-    value: usedMemory.value,
-  },
-]);
+const isMobile = useMediaQuery('(max-width: 767px)');
 
 const fetchRedisData = async () => {
   loading.value = true;
@@ -59,7 +55,7 @@ const redisDescriptionItems = computed(() => [
   {
     key: 'uptime',
     label: '运行时间',
-    content: redisInfo.value?.uptime,
+    content: formatDuration(String(redisInfo.value?.uptime ?? '--')),
   },
   {
     key: 'connected_clients',
@@ -112,69 +108,33 @@ const redisDescriptionItems = computed(() => [
     content: redisInfo.value?.keys_num,
   },
 ]);
-
-const parseMemoryToMB = (memStr: string): number => {
-  if (!memStr) return 0;
-  const match = memStr.match(/^([\d.]+)([BKMG]?)$/i);
-  if (!match || !match[1]) return 0;
-  const value = Number.parseFloat(match[1]);
-  const unit = (match[2] || 'B').toUpperCase();
-  switch (unit) {
-    case 'G': {
-      return value * 1024;
-    }
-    case 'K': {
-      return value / 1024;
-    }
-    case 'M': {
-      return value;
-    }
-    default: {
-      return value / 1024 / 1024;
-    }
-  }
-};
-
-watch(redisInfo, (val) => {
-  usedMemory.value = Number.parseFloat(
-    parseMemoryToMB(val.used_memory_human).toFixed(2),
-  );
-});
 </script>
 
 <template>
-  <Page auto-content-height content-class="flex flex-col">
-    <el-card v-loading="loading">
+  <Page>
+    <ElCard v-loading="loading" shadow="never">
       <template #header>服务器信息</template>
-      <el-descriptions :column="3" size="small">
-        <el-descriptions-item
+      <ElDescriptions :column="isMobile ? 1 : 3">
+        <ElDescriptionsItem
           v-for="item in redisDescriptionItems"
           :key="item.key"
           :label="item.label"
         >
           {{ item.content }}
-        </el-descriptions-item>
-      </el-descriptions>
-    </el-card>
-    <div class="mt-4 flex min-h-0 flex-1 space-x-4">
-      <div class="flex min-h-0 flex-1 flex-col">
-        <el-card
-          class="flex flex-1 flex-col"
-          v-loading="loading"
-        >
-          <template #header>命令统计</template>
-          <CommandsSeries class="min-h-0 flex-1" :stats="redisStats" />
-        </el-card>
-      </div>
-      <div class="flex min-h-0 flex-1 flex-col">
-        <el-card
-          class="flex flex-1 flex-col"
-          v-loading="loading"
-        >
-          <template #header>内存使用</template>
-          <ActiveSeries class="min-h-0 flex-1" :memory="redisUsedMemory" />
-        </el-card>
-      </div>
+        </ElDescriptionsItem>
+      </ElDescriptions>
+    </ElCard>
+    <div class="mt-5 grid min-w-0 gap-5 lg:grid-cols-2">
+      <AnalysisChartCard v-loading="loading" class="min-w-0" title="命令统计">
+        <CommandsSeries :stats="redisStats" />
+      </AnalysisChartCard>
+      <AnalysisChartCard v-loading="loading" class="min-w-0" title="内存使用">
+        <ActiveSeries
+          :used-memory="redisInfo.used_memory_human ?? '0B'"
+          :rss-memory="redisInfo.used_memory_rss_human ?? '0B'"
+          :max-memory="redisInfo.maxmemory_human ?? '0B'"
+        />
+      </AnalysisChartCard>
     </div>
   </Page>
 </template>

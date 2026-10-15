@@ -1,6 +1,13 @@
 import { baseRequestClient, requestClient } from '#/api/request';
 
 export namespace AuthApi {
+  export interface CaptchaResult {
+    is_enabled: boolean;
+    expire_seconds: number;
+    uuid: string;
+    image: string;
+  }
+
   /** 登录接口参数 */
   export interface LoginParams {
     password?: string;
@@ -26,6 +33,10 @@ export namespace AuthApi {
     email?: string;
     phone?: string;
   }
+}
+
+export async function getLoginCaptchaApi() {
+  return requestClient.get<AuthApi.CaptchaResult>('/v1/auth/captcha');
 }
 
 /**
