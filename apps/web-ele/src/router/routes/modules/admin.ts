@@ -119,6 +119,35 @@ const routes: RouteRecordRaw[] = [
         ],
       },
       {
+        name: 'AdminScheduler',
+        path: '/admin/scheduler',
+        redirect: '/admin/scheduler/manage',
+        meta: {
+          icon: 'lucide:calendar-clock',
+          title: $t('page.admin.scheduler'),
+        },
+        children: [
+          {
+            name: 'TaskSchedulerManage',
+            path: '/admin/scheduler/manage',
+            component: () => import('#/views/admin/scheduler/manage/index.vue'),
+            meta: {
+              icon: 'lucide:list-todo',
+              title: $t('page.admin.taskManage'),
+            },
+          },
+          {
+            name: 'TaskSchedulerRecord',
+            path: '/admin/scheduler/record',
+            component: () => import('#/views/admin/scheduler/record/index.vue'),
+            meta: {
+              icon: 'lucide:history',
+              title: $t('page.admin.taskRecord'),
+            },
+          },
+        ],
+      },
+      {
         meta: {
           icon: 'fe:notice-push',
           title: $t('page.admin.notice'),

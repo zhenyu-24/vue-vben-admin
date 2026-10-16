@@ -53,7 +53,6 @@ function createPermissionSwitch(
       inlinePrompt: true,
       activeText: $t('page.admin.userPage.status.enabledText'),
       inactiveText: $t('page.admin.userPage.status.disabledText'),
-      width: 76,
       ...props,
     },
   };
@@ -166,7 +165,7 @@ export function useColumns(
       title: $t('page.admin.userPage.column.operation'),
       align: 'center',
       fixed: 'right',
-      width: 150,
+      width: 180,
       showOverflow: false,
       cellRender: {
         attrs: {

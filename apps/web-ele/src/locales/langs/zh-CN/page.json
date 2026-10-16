@@ -17,6 +17,9 @@
     "org": "组织管理",
     "log": "日志管理",
     "monitor": "系统监控",
+    "scheduler": "任务调度",
+    "taskManage": "任务管理",
+    "taskRecord": "执行记录",
     "user": "用户管理",
     "dept": "部门管理",
     "role": "角色管理",
@@ -59,8 +62,8 @@
       "status": {
         "normal": "正常",
         "disabled": "停用",
-        "enabledText": "已启用",
-        "disabledText": "已禁用"
+        "enabledText": "启用",
+        "disabledText": "禁用"
       },
       "message": {
         "unbound": "未绑定",

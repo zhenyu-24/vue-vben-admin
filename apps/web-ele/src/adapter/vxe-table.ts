@@ -9,7 +9,9 @@ import {
   useVbenVxeGrid as useGrid,
 } from '@vben/plugins/vxe-table';
 
-import { ElButton, ElImage, ElPopconfirm, ElSwitch, ElTag } from 'element-plus';
+import { ElButton, ElImage, ElPopconfirm, ElTag } from 'element-plus';
+
+import StatusSwitch from '#/views/admin/shared/status-switch.vue';
 
 import { useVbenForm } from './form';
 
@@ -103,7 +105,7 @@ setupVbenVxeTable({
             }
           },
         };
-        return h(ElSwitch, switchProps);
+        return h(StatusSwitch, switchProps);
       },
     });
 
@@ -180,7 +182,14 @@ setupVbenVxeTable({
             ElButton,
             {
               ...buttonProps,
-              size: 'small',
+              size: 'default',
+              style: {
+                fontSize: '16px',
+                fontWeight: 400,
+                height: '32px',
+                marginLeft: 0,
+                padding: 0,
+              },
               type: code === 'delete' ? 'danger' : 'primary',
               link: true,
               disabled: resolveDisabled(opt),
@@ -215,7 +224,12 @@ setupVbenVxeTable({
           'div',
           {
             class: 'flex',
-            style: { justifyContent: justify, gap: '4px' },
+            style: {
+              justifyContent: justify,
+              alignItems: 'center',
+              gap: '16px',
+              whiteSpace: 'nowrap',
+            },
           },
           btns,
         );

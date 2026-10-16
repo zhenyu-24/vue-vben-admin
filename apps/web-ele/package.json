@@ -42,6 +42,7 @@
     "@vben/types": "workspace:*",
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
+    "croner": "10.0.1",
     "dayjs": "catalog:",
     "element-plus": "catalog:",
     "marked": "^18.0.6",
