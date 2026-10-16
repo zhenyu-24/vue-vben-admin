@@ -27,6 +27,7 @@ export {
   VbenDescriptions,
   VbenDescriptionsItem,
   VbenFullScreen,
+  VbenHelpTooltip,
   VbenIconButton,
   VbenInputPassword,
   VbenLoading,
@@ -35,6 +36,7 @@ export {
   VbenSelect,
   VbenSpinner,
   VbenTableAction,
+  VbenTooltip,
 } from '@vben-core/shadcn-ui';
 
 export type {

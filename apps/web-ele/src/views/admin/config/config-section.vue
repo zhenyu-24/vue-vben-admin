@@ -8,12 +8,12 @@ import type { ConfigResult } from '#/api';
 import { computed, ref, watch } from 'vue';
 
 import { useAccess } from '@vben/access';
+import { VbenButton } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 import { useUserStore } from '@vben/stores';
 
-import { Check, Close, Edit, Refresh } from '@element-plus/icons-vue';
 import {
   ElAlert,
-  ElButton,
   ElEmpty,
   ElForm,
   ElFormItem,
@@ -27,6 +27,7 @@ import {
 
 import { getAllConfigApi, updateConfigApi } from '#/api';
 
+import StatusSwitch from '../shared/status-switch.vue';
 import { useAsyncResource } from '../shared/useAsyncResource';
 import {
   buildConfigUpdates,
@@ -166,9 +167,10 @@ async function saveConfig() {
       :closable="false"
       show-icon
     >
-      <ElButton :icon="Refresh" size="small" @click="fetchConfigList">
+      <VbenButton variant="link" class="h-8 gap-1 px-0" @click="fetchConfigList">
+        <IconifyIcon icon="lucide:rotate-cw" class="size-4" />
         重新加载
-      </ElButton>
+      </VbenButton>
     </ElAlert>
     <ElEmpty v-else-if="configs.length === 0" description="暂无配置" />
     <ElForm
@@ -196,7 +198,7 @@ async function saveConfig() {
           </div>
           <p>启用后优先使用以下参数。</p>
         </div>
-        <ElSwitch
+        <StatusSwitch
           v-model="values[definition.statusKey]"
           active-value="1"
           inactive-value="0"
@@ -272,28 +274,34 @@ async function saveConfig() {
       class="config-actions"
     >
       <template v-if="editing">
-        <ElButton
-          type="primary"
-          :icon="Check"
+        <VbenButton
+          class="gap-1.5"
           :loading="saving"
           :disabled="!dirty"
           @click="saveConfig"
         >
+          <IconifyIcon v-if="!saving" icon="lucide:check" class="size-4" />
           保存修改
-        </ElButton>
-        <ElButton :icon="Close" :disabled="saving" @click="cancelEditing">
+        </VbenButton>
+        <VbenButton
+          variant="outline"
+          class="gap-1.5"
+          :disabled="saving"
+          @click="cancelEditing"
+        >
+          <IconifyIcon icon="lucide:x" class="size-4" />
           取消
-        </ElButton>
+        </VbenButton>
         <span v-if="dirty" class="unsaved-label">有未保存的修改</span>
       </template>
-      <ElButton
+      <VbenButton
         v-else-if="canEdit"
-        type="primary"
-        :icon="Edit"
+        class="gap-1.5"
         @click="editing = true"
       >
+        <IconifyIcon icon="lucide:pencil" class="size-4" />
         修改配置
-      </ElButton>
+      </VbenButton>
       <span v-else class="readonly-label">当前账号仅可查看配置</span>
     </footer>
   </section>
@@ -435,10 +443,6 @@ async function saveConfig() {
   margin-top: 8px;
   background: var(--el-bg-color);
   border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.config-actions .el-button + .el-button {
-  margin-left: 0;
 }
 
 .unsaved-label {

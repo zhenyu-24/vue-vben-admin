@@ -6,8 +6,6 @@ import { ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import { ElTag } from 'element-plus';
-
 import { getOnlineMonitorApi, kickOutOnlineApi } from '#/api';
 
 import { useAdminGrid } from '../../shared/useAdminGrid';
@@ -53,11 +51,16 @@ function onActionClick({
 <template>
   <Page auto-content-height>
     <Grid>
-      <template #toolbar-actions>
+      <template #table-title>
         <div class="flex items-center gap-2">
-          <ElTag type="success" effect="dark" size="small">
+          <span class="text-[1rem] font-bold">在线用户</span>
+          <span
+            :aria-label="`在线会话数：${onlineCount}`"
+            class="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-success/10 px-2 text-xs font-semibold leading-none text-success-700 tabular-nums dark:text-success-400"
+            role="status"
+          >
             {{ onlineCount }}
-          </ElTag>
+          </span>
         </div>
       </template>
     </Grid>

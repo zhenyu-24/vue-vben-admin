@@ -1,5 +1,7 @@
 import type { Recordable, UserInfo } from '@vben/types';
 
+import type { AuthApi, CurrentUserInfo } from '#/api';
+
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -30,21 +32,17 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * 将 fba 后端用户信息映射为 Vben Admin 的 UserInfo 格式
    */
-  function mapUserInfo(raw: Record<string, any>, token?: string): UserInfo {
-    // 提取角色
-    const rawRoles: string[] = Array.isArray(raw.roles) 
-      ? raw.roles.map((r: any) => r.name ?? r) 
-      : [];
-    
-    const roles = [...rawRoles];
-    // 管理员看 is_super_admin
+  function mapUserInfo(raw: CurrentUserInfo): UserInfo {
     return {
       ...raw,
       userId: String(raw.id ?? raw.userId ?? ''),
+      username: raw.username,
+      avatar: raw.avatar ?? '',
+      homePath: raw.homePath || preferences.app.defaultHomePath,
       realName: raw.nickname ?? raw.realName ?? raw.username ?? '',
       desc: raw.desc ?? '',
-      token: token ?? raw.token ?? '',
-      roles
+      token: accessStore.accessToken ?? raw.token ?? '',
+      roles: raw.roles ?? [],
     };
   }
 
@@ -76,15 +74,12 @@ export const useAuthStore = defineStore('auth', () => {
         accessStore.setAccessToken(accessToken);
 
         // 获取用户信息（包含 roles）和权限码
-        const [fetchUserInfoResult, accessCodes] = await Promise.all([
+        const [fetchedUserInfo, accessCodes] = await Promise.all([
           fetchUserInfo(),
           getAccessCodesApi(),
         ]);
 
-        // 映射为 Vben Admin 的 UserInfo 格式
-        userInfo = mapUserInfo(fetchUserInfoResult, accessToken);
-        console.log("userInfo:", userInfo);
-        userStore.setUserInfo(userInfo);
+        userInfo = fetchedUserInfo;
         accessStore.setAccessCodes(accessCodes);
 
         if (accessStore.loginExpired) {
@@ -119,7 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       registerLoading.value = true;
       // 只发送非空的可选字段，避免向后端发送空字符串
-      const registerData: Record<string, any> = {
+      const registerData: AuthApi.RegisterParams = {
         username: params.username,
         password: params.password,
       };
@@ -154,8 +149,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchUserInfo() {
-    const userInfo = await getUserInfoApi();
-    // 暂不映射，authLogin 中会整体 mapUserInfo
+    const userInfo = mapUserInfo(await getUserInfoApi());
     userStore.setUserInfo(userInfo);
     return userInfo;
   }

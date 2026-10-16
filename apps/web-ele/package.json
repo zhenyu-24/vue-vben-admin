@@ -44,6 +44,7 @@
     "@vueuse/core": "catalog:",
     "croner": "10.0.1",
     "dayjs": "catalog:",
+    "dompurify": "^3.4.17",
     "element-plus": "catalog:",
     "marked": "^18.0.6",
     "pinia": "catalog:",

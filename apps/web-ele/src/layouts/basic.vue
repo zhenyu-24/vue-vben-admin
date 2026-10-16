@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import type { NotificationItem } from '@vben/layouts';
 
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { AuthenticationLoginExpiredModal } from '@vben/common-ui';
+import { AuthenticationLoginExpiredModal, useVbenModal } from '@vben/common-ui';
+import { useWatermark } from '@vben/hooks';
 import {
   BasicLayout,
   LockScreen,
@@ -14,11 +15,6 @@ import {
 import { preferences, usePreferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 
-import { $t } from '#/locales';
-import { useAuthStore } from '#/store';
-import LoginForm from '#/views/_core/authentication/login.vue';
-import { useWatermark } from '@vben/hooks';
-
 import {
   clearUserNoticesApi,
   deleteUserNoticeApi,
@@ -27,13 +23,47 @@ import {
   markAllNoticesReadApi,
   markNoticeReadApi,
 } from '#/api';
+import NoticeContent from '#/components/notice-content.vue';
+import { $t } from '#/locales';
+import { useAuthStore } from '#/store';
+import { noticeContentText } from '#/utils/notice-content';
+import LoginForm from '#/views/_core/authentication/login.vue';
 
 /** ---------- 通知 ---------- */
-const notifications = ref<NotificationItem[]>([]);
+type NoticeNotification = NotificationItem & { content: string };
+
+const notifications = ref<NoticeNotification[]>([]);
+const preview = ref<NoticeNotification>();
+let previewQueue: NoticeNotification[] = [];
+
+const [NoticePreviewModal, noticePreviewModalApi] = useVbenModal({
+  title: '通知公告预览',
+  class: 'w-[1080px] max-w-[calc(100vw-2rem)]',
+  footer: false,
+  async onClosed() {
+    preview.value = undefined;
+    // Let the modal finish destroying its content before opening the next notice.
+    await nextTick();
+    openNextNotice();
+  },
+});
+
+function openNextNotice() {
+  const notice = previewQueue.shift();
+  if (!notice) return;
+  preview.value = notice;
+  noticePreviewModalApi.setState({ fullscreen: false }).open();
+  if (!notice.isRead) {
+    void markRead(notice.id).catch(() => {
+      // The request client displays API errors; the notice remains unread.
+    });
+  }
+}
+
 const showDot = computed(() =>
   notifications.value.some((item) => !item.isRead),
 );
-let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pollTimer: null | ReturnType<typeof setInterval> = null;
 
 async function fetchNotifications() {
   try {
@@ -42,17 +72,18 @@ async function fetchNotifications() {
       getUserNoticeStatusApi(),
     ]);
     const statusMap = new Map(
-      (statusRes ?? []).map((s) => [s.notice_id, s]),
+      (statusRes ?? []).map((s) => [String(s.notice_id), s]),
     );
 
     notifications.value = (noticeRes.items ?? [])
-      .filter((item) => !statusMap.get(item.id)?.deleted)
+      .filter((item) => !statusMap.get(String(item.id))?.deleted)
       .map((item) => {
-        const userStatus = statusMap.get(item.id);
+        const userStatus = statusMap.get(String(item.id));
         return {
           id: item.id,
           title: item.title,
-          message: item.content?.replace(/[#*`>\[\]]/g, '').slice(0, 120) || '',
+          content: item.content,
+          message: noticeContentText(item.content).slice(0, 120),
           date: item.created_time,
           avatar: preferences.app.defaultAvatar,
           isRead: userStatus?.is_read ?? false,
@@ -65,15 +96,15 @@ async function fetchNotifications() {
 }
 
 function handleNoticeClear() {
-  const ids = notifications.value.map((n) => n.id as number);
+  const ids = notifications.value.map((n) => n.id);
   if (ids.length > 0) {
     clearUserNoticesApi(ids);
   }
   notifications.value = [];
 }
 
-function markRead(id: number | string) {
-  markNoticeReadApi(id as number);
+async function markRead(id: number | string) {
+  await markNoticeReadApi(id);
   const item = notifications.value.find((n) => n.id === id);
   if (item) {
     item.isRead = true;
@@ -81,12 +112,12 @@ function markRead(id: number | string) {
 }
 
 function remove(id: number | string) {
-  deleteUserNoticeApi(id as number);
+  deleteUserNoticeApi(id);
   notifications.value = notifications.value.filter((n) => n.id !== id);
 }
 
 function handleMakeAll() {
-  const ids = notifications.value.map((n) => n.id as number);
+  const ids = notifications.value.map((n) => n.id);
   if (ids.length > 0) {
     markAllNoticesReadApi(ids);
   }
@@ -95,12 +126,20 @@ function handleMakeAll() {
   });
 }
 
-const viewAll = () => {};
+function viewAll() {
+  previewQueue = [...notifications.value];
+  openNextNotice();
+}
 
 function handleClick(item: NotificationItem) {
   if (item.link) {
     navigateTo(item.link, item.query, item.state);
+    return;
   }
+  const notice = notifications.value.find((notice) => notice.id === item.id);
+  if (!notice) return;
+  previewQueue = [notice];
+  openNextNotice();
 }
 
 onMounted(() => {
@@ -110,6 +149,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  previewQueue = [];
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
@@ -243,8 +283,11 @@ watch(
       />
     </template>
 
-    <!-- 登录过期弹窗 -->
+    <!-- 全局弹窗 -->
     <template #extra>
+      <NoticePreviewModal>
+        <NoticeContent :title="preview?.title" :content="preview?.content" />
+      </NoticePreviewModal>
       <AuthenticationLoginExpiredModal
         v-model:open="accessStore.loginExpired"
         :avatar

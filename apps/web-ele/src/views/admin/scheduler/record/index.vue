@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import type { AdminGridApi } from '../../shared/useAdminGrid';
+
 import type { OnActionClickParams } from '#/adapter/vxe-table';
 import type { TaskResult } from '#/api';
 
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-import { Page, useVbenDrawer, VbenButton } from '@vben/common-ui';
+import {
+  Page,
+  useVbenDrawer,
+  VbenButton,
+  VbenDescriptions,
+  VbenDescriptionsItem,
+} from '@vben/common-ui';
+import { Trash2 } from '@vben/icons';
 
-import { Delete } from '@element-plus/icons-vue';
-import { ElDescriptions, ElDescriptionsItem, ElTag } from 'element-plus';
+import { ElTag } from 'element-plus';
 
 import {
   deleteTaskResultApi,
@@ -24,6 +31,17 @@ import { displayResult, querySchema, statusOptions, useColumns } from './data';
 defineOptions({ name: 'TaskSchedulerRecord' });
 const route = useRoute();
 const details = ref<TaskResult>();
+const statusType = computed(
+  () =>
+    statusOptions.find((item) => item.value === details.value?.status)
+      ?.color as
+      | 'danger'
+      | 'info'
+      | 'primary'
+      | 'success'
+      | 'warning'
+      | undefined,
+);
 const { gridEvents, disabled, loading, deleteSelected, onQuery } =
   useBatchDelete<TaskResult>(
     (): AdminGridApi<TaskResult> => gridApi,
@@ -79,50 +97,41 @@ watch(() => route.query.name, syncRoute);
     <Grid>
       <template #toolbar-actions>
         <VbenButton
+          class="gap-2"
           variant="destructive"
           :disabled="disabled"
           :loading="loading"
           @click="deleteSelected"
         >
-          <Delete class="mr-1 size-5" />删除记录
+          <Trash2 v-if="!loading" class="size-4 shrink-0" aria-hidden="true" />
+          删除记录
         </VbenButton>
       </template>
     </Grid>
     <Drawer>
-      <ElDescriptions v-if="details" :column="1" border class="break-all">
-        <ElDescriptionsItem label="任务 ID">{{
-          details.task_id
-        }}</ElDescriptionsItem>
-        <ElDescriptionsItem label="任务名称">{{
-          details.name ?? '无'
-        }}</ElDescriptionsItem>
-        <ElDescriptionsItem label="状态">
-          <ElTag
-            :type="
-              (statusOptions.find((item) => item.value === details?.status)
-                ?.color ?? 'info') as
-                | 'success'
-                | 'danger'
-                | 'primary'
-                | 'warning'
-                | 'info'
-            "
-            >{{ details.status }}</ElTag
-          >
-        </ElDescriptionsItem>
-        <ElDescriptionsItem label="结束时间">{{
-          details.date_done ?? '无'
-        }}</ElDescriptionsItem>
-        <ElDescriptionsItem label="重试次数">{{
-          details.retries ?? 0
-        }}</ElDescriptionsItem>
-        <ElDescriptionsItem label="Worker">{{
-          details.worker ?? '无'
-        }}</ElDescriptionsItem>
-        <ElDescriptionsItem label="队列">{{
-          details.queue ?? '无'
-        }}</ElDescriptionsItem>
-        <ElDescriptionsItem
+      <VbenDescriptions v-if="details" :column="1" bordered class="break-all">
+        <VbenDescriptionsItem label="任务 ID">
+          {{ details.task_id }}
+        </VbenDescriptionsItem>
+        <VbenDescriptionsItem label="任务名称">
+          {{ details.name ?? '无' }}
+        </VbenDescriptionsItem>
+        <VbenDescriptionsItem label="状态">
+          <ElTag :type="statusType ?? 'info'">{{ details.status }}</ElTag>
+        </VbenDescriptionsItem>
+        <VbenDescriptionsItem label="结束时间">
+          {{ details.date_done ?? '无' }}
+        </VbenDescriptionsItem>
+        <VbenDescriptionsItem label="重试次数">
+          {{ details.retries ?? 0 }}
+        </VbenDescriptionsItem>
+        <VbenDescriptionsItem label="Worker">
+          {{ details.worker ?? '无' }}
+        </VbenDescriptionsItem>
+        <VbenDescriptionsItem label="队列">
+          {{ details.queue ?? '无' }}
+        </VbenDescriptionsItem>
+        <VbenDescriptionsItem
           v-for="item in [
             { key: 'args', label: '位置参数' },
             { key: 'kwargs', label: '关键字参数' },
@@ -134,10 +143,10 @@ watch(() => route.query.name, syncRoute);
         >
           <pre
             class="max-h-[400px] overflow-auto whitespace-pre-wrap break-all font-mono text-sm"
-            >{{ displayResult(details[item.key]) }}</pre
-          >
-        </ElDescriptionsItem>
-      </ElDescriptions>
+            v-text="displayResult(details[item.key])"
+          ></pre>
+        </VbenDescriptionsItem>
+      </VbenDescriptions>
     </Drawer>
   </Page>
 </template>

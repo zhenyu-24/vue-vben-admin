@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { VbenTooltip } from '@vben/common-ui';
+
 import { Refresh } from '@element-plus/icons-vue';
 import { ElIcon, ElInput } from 'element-plus';
 
@@ -20,18 +22,24 @@ const model = defineModel<string>();
       autocapitalize="off"
       :spellcheck="false"
     />
-    <button
-      type="button"
-      class="captcha-image"
-      title="刷新验证码"
-      aria-label="刷新验证码"
-      :disabled="disabled || loading"
-      @click.stop="emit('refresh')"
-      @keydown.enter.stop.prevent="emit('refresh')"
-    >
-      <ElIcon v-if="loading" class="is-loading" :size="20"><Refresh /></ElIcon>
-      <img v-else :src="image" alt="图形验证码" width="120" height="40" />
-    </button>
+    <VbenTooltip side="top" :disabled="disabled || loading">
+      刷新验证码
+      <template #trigger>
+        <button
+          type="button"
+          class="captcha-image"
+          aria-label="刷新验证码"
+          :disabled="disabled || loading"
+          @click.stop="emit('refresh')"
+          @keydown.enter.stop.prevent="emit('refresh')"
+        >
+          <ElIcon v-if="loading" class="is-loading" :size="20">
+            <Refresh />
+          </ElIcon>
+          <img v-else :src="image" alt="图形验证码" width="120" height="40" />
+        </button>
+      </template>
+    </VbenTooltip>
   </div>
 </template>
 

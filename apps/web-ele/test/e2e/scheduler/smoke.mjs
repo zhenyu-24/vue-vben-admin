@@ -41,6 +41,7 @@ const record = {
 };
 const writes = [];
 const recordQueries = [];
+let rejectSwitch = false;
 await page.route('**/api/v1/**', async (route) => {
   const request = route.request();
   const url = new URL(request.url());
@@ -51,12 +52,23 @@ await page.route('**/api/v1/**', async (route) => {
       method: request.method(),
       body: request.postDataJSON(),
     });
+    if (rejectSwitch && url.pathname.includes('/sys/users/2/permissions')) {
+      await route.fulfill({
+        status: 400,
+        json: { code: 400, msg: '测试：状态更新失败', data: null },
+      });
+      return;
+    }
+    if (url.pathname.endsWith(`/schedulers/${task.id}/status`)) {
+      task.status = task.status === 1 ? 0 : 1;
+    }
   } else if (url.pathname.endsWith('/sys/users/me')) {
     data = {
       id: 1,
       username: 'tester',
       realName: '测试管理员',
       roles: ['admin'],
+      is_superuser: true,
       homePath: '/admin/scheduler/manage',
       avatar: '',
     };
@@ -99,7 +111,40 @@ await page.addInitScript(() => {
     'vben-web-ele-5.7.0-dev-core-access',
     JSON.stringify({ accessToken: 'test-only-token', accessCodes: [] }),
   );
+  if (!localStorage.getItem('vben-web-ele-5.7.0-dev-preferences')) {
+    localStorage.setItem(
+      'vben-web-ele-5.7.0-dev-preferences',
+      JSON.stringify({ value: { theme: { mode: 'light' } } }),
+    );
+    localStorage.setItem(
+      'vben-web-ele-5.7.0-dev-preferences-theme',
+      JSON.stringify({ value: 'light' }),
+    );
+  }
 });
+async function settleDialog(element) {
+  await element.waitFor();
+  await element.evaluate((node) =>
+    Promise.all(
+      node.getAnimations({ subtree: true }).map((animation) =>
+        animation.finished.catch(() => {}),
+      ),
+    ),
+  );
+}
+async function checkOffAppearance(element) {
+  const appearance = await element.evaluate((node) => {
+    const text = node.querySelector('.el-switch__inner-wrapper');
+    return {
+      foreground: getComputedStyle(text).color,
+      background: getComputedStyle(node.querySelector('.el-switch__core')).backgroundColor,
+      clipped: text.scrollWidth > text.clientWidth,
+    };
+  });
+  assert.equal(appearance.foreground, 'rgb(255, 255, 255)');
+  assert.equal(appearance.background, 'rgb(207, 208, 209)');
+  assert.equal(appearance.clipped, false, 'Status text must fit');
+}
 try {
   await page.goto('http://127.0.0.1:5777/admin/scheduler/manage');
   await page.getByRole('button', { name: '新增任务', exact: true }).waitFor();
@@ -117,11 +162,73 @@ try {
         text: element.textContent,
       };
     });
-  assert.equal(switchShape.height, 26);
-  assert.equal(switchShape.width, 60);
-  assert.equal(switchShape.radius, '13px');
+  assert.equal(switchShape.height, 22);
+  assert.equal(switchShape.width, 56);
+  assert.equal(switchShape.radius, '11px');
   assert.match(switchShape.text, /启用/);
   assert.doesNotMatch(switchShape.text, /已启用/);
+  const help = page.getByRole('button', { name: '触发策略说明', exact: true });
+  const icon = help.locator('svg');
+  assert.equal(await icon.count(), 1, 'Help icon must render without a remote icon request');
+  const iconBox = await icon.boundingBox();
+  assert.equal(iconBox.width, 14);
+  assert.equal(iconBox.height, 14);
+  await help.hover();
+  const tooltip = page.locator('[data-slot="tooltip-content"]');
+  await tooltip.waitFor();
+  assert.equal(
+    (await tooltip.innerText()).replace(/\s+/g, ' ').trim(),
+    'Crontab 表达式：https://docs.celery.dev/en/latest/userguide/periodic-tasks.html#crontab-schedules',
+  );
+  assert.equal(
+    await tooltip.evaluate((node) => getComputedStyle(node).backgroundColor),
+    'rgb(48, 49, 51)',
+  );
+  assert.match(await tooltip.getByRole('link').getAttribute('href'), /#crontab-schedules$/);
+  await page.screenshot({
+    path: path.join(tmpdir(), 'scheduler-strategy-help.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.mouse.move(5, 5);
+  await tooltip.waitFor({ state: 'hidden' });
+  await help.focus();
+  await tooltip.waitFor();
+  await page.keyboard.press('Escape');
+  await tooltip.waitFor({ state: 'hidden' });
+  await help.evaluate((node) => node.blur());
+  await statusSwitch.click();
+  await page.waitForFunction(() =>
+    document.querySelector('.admin-status-switch')?.textContent.includes('禁用'),
+  );
+  await checkOffAppearance(statusSwitch);
+  await page.screenshot({
+    path: path.join(tmpdir(), 'scheduler-disabled-light.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.evaluate(() => {
+    localStorage.setItem(
+      'vben-web-ele-5.7.0-dev-preferences',
+      JSON.stringify({ value: { theme: { mode: 'dark' } } }),
+    );
+    localStorage.setItem(
+      'vben-web-ele-5.7.0-dev-preferences-theme',
+      JSON.stringify({ value: 'dark' }),
+    );
+  });
+  await page.reload();
+  await page.getByText('调度测试任务', { exact: true }).first().waitFor();
+  await checkOffAppearance(statusSwitch);
+  await page.screenshot({
+    path: path.join(tmpdir(), 'scheduler-disabled-dark.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await statusSwitch.click();
+  await page.waitForFunction(() =>
+    document.querySelector('.admin-status-switch')?.textContent.includes('启用'),
+  );
   const operationStyle = await page
     .getByRole('button', { name: '修改', exact: true })
     .first()
@@ -137,20 +244,24 @@ try {
   await page.getByRole('button', { name: '新增任务', exact: true }).click();
   const dialog = page.locator('[role="dialog"]:visible').last();
   await dialog.locator('input').first().waitFor();
+  await settleDialog(dialog);
   await page.screenshot({
     path: path.join(tmpdir(), 'scheduler-create.png'),
     fullPage: true,
   });
   await dialog.getByRole('button', { name: '配置执行计划' }).click();
+  const cronDialog = page.getByRole('dialog', { name: '配置执行计划', exact: true });
+  await settleDialog(cronDialog);
   await page
     .getByText('预计执行时间（浏览器本地时区）', { exact: true })
     .first()
     .waitFor();
   await page
-    .locator('[role="dialog"]:visible')
-    .last()
+    .getByRole('dialog', { name: '配置执行计划', exact: true })
     .getByRole('button', { name: '取消', exact: true })
     .click();
+  await cronDialog.waitFor({ state: 'hidden' });
+  await settleDialog(dialog);
   await dialog.getByRole('button', { name: '取消', exact: true }).click();
   await page.getByRole('button', { name: '修改', exact: true }).first().click();
   await page.waitForFunction(() =>
@@ -236,9 +347,14 @@ try {
     await userSwitch
       .locator('.el-switch__core')
       .evaluate((element) => element.getBoundingClientRect().width),
-    60,
+    56,
   );
   assert.match(await userSwitch.innerText(), /启用/);
+  rejectSwitch = true;
+  await userSwitch.click();
+  await page.getByText('测试：状态更新失败', { exact: true }).waitFor();
+  assert.match(await userSwitch.innerText(), /启用/, 'Failed updates retain the original value');
+  rejectSwitch = false;
   await userSwitch.click();
   await page.waitForFunction(() =>
     document

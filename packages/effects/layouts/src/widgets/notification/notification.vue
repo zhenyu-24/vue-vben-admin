@@ -48,6 +48,11 @@ const handleViewAll = () => {
   close();
 };
 
+const handleClick = (item: NotificationItem) => {
+  emit('onClick', item);
+  close();
+};
+
 const handleMakeAll = () => {
   emit('makeAll');
 };
@@ -86,7 +91,7 @@ const handleClear = () => {
           <template v-for="item in notifications" :key="item.id ?? item.title">
             <li
               class="relative flex w-full cursor-pointer items-start gap-5 border-t border-border p-3 hover:bg-accent"
-              @click="emit('onClick', item)"
+              @click="handleClick(item)"
             >
               <slot name="content" :item="item">
                 <span

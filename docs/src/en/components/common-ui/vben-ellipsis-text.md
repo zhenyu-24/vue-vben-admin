@@ -21,13 +21,13 @@ Pass the text through the default slot and limit the visual width with `maxWidth
 | `maxWidth` | max width of the text area | `number \| string` | `'100%'` |
 | `placement` | tooltip placement | `'bottom' \| 'left' \| 'right' \| 'top'` | `'top'` |
 | `tooltip` | enable tooltip | `boolean` | `true` |
-| `tooltipWhenEllipsis` | only show tooltip when text is actually truncated | `boolean` | `false` |
+| `tooltipWhenEllipsis` | only show tooltip when text is actually truncated | `boolean` | `true` |
 | `ellipsisThreshold` | pixel threshold used when checking truncation | `number` | `3` |
 | `tooltipBackgroundColor` | tooltip background color | `string` | `''` |
 | `tooltipColor` | tooltip text color | `string` | `''` |
 | `tooltipFontSize` | tooltip font size in px | `number` | `14` |
-| `tooltipMaxWidth` | tooltip max width in px | `number` | - |
-| `tooltipOverlayStyle` | tooltip content style | `CSSProperties` | `{ textAlign: 'justify' }` |
+| `tooltipMaxWidth` | tooltip max width in px | `number` | `360` |
+| `tooltipOverlayStyle` | tooltip content style | `CSSProperties` | `{ textAlign: 'left' }` |
 
 ## Events
 

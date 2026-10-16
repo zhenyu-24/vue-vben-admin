@@ -3,13 +3,12 @@ import type { SysDataRuleResult, SysDataScopeResult } from '#/api';
 
 import { computed, ref } from 'vue';
 
-import { useVbenModal } from '@vben/common-ui';
+import { useVbenModal, VbenButton } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { Refresh } from '@element-plus/icons-vue';
 import {
   ElAlert,
-  ElButton,
   ElSkeleton,
   ElTable,
   ElTableColumn,
@@ -67,11 +66,22 @@ async function loadRules() {
       :closable="false"
       show-icon
     >
-      <ElButton :icon="Refresh" link type="primary" @click="loadRules">{{
-        $t('organization.retry')
-      }}</ElButton>
+      <VbenButton class="h-8 gap-1 px-0" variant="link" @click="loadRules">
+        <IconifyIcon icon="lucide:rotate-cw" class="size-4" />
+        {{ $t('organization.retry') }}
+      </VbenButton>
     </ElAlert>
-    <ElTable v-else :data="rules" row-key="id" max-height="480">
+    <ElTable
+      v-else
+      :data="rules"
+      row-key="id"
+      max-height="480"
+      :tooltip-options="{
+        effect: 'light',
+        popperClass: 'app-text-tooltip',
+        showAfter: 300,
+      }"
+    >
       <ElTableColumn
         prop="name"
         :label="$t('organization.role.ruleName')"

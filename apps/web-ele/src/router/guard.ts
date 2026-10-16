@@ -9,6 +9,7 @@ import { accessRoutes, coreRouteNames } from '#/router/routes';
 import { useAuthStore } from '#/store';
 
 import { generateAccess } from './access';
+import { isAdminRoute, isSuperuser } from './admin-access';
 
 /**
  * 通用守卫配置
@@ -87,6 +88,9 @@ function setupAccessGuard(router: Router) {
 
     // 是否已经生成过动态路由
     if (accessStore.isAccessChecked) {
+      if (isAdminRoute(to) && !isSuperuser(userStore.userInfo)) {
+        return { name: 'Forbidden', replace: true };
+      }
       return true;
     }
 
@@ -107,6 +111,9 @@ function setupAccessGuard(router: Router) {
     accessStore.setAccessMenus(accessibleMenus);
     accessStore.setAccessRoutes(accessibleRoutes);
     accessStore.setIsAccessChecked(true);
+    if (isAdminRoute(to) && !isSuperuser(userInfo)) {
+      return { name: 'Forbidden', replace: true };
+    }
     const redirectPath = (from.query.redirect ??
       (to.path === preferences.app.defaultHomePath
         ? userInfo.homePath || preferences.app.defaultHomePath

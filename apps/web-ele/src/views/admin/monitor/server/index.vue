@@ -3,10 +3,10 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 
 import { computed, onMounted } from 'vue';
 
-import { Page } from '@vben/common-ui';
+import { Page, VbenButton } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 
-import { Refresh } from '@element-plus/icons-vue';
-import { ElAlert, ElButton, ElCard, ElProgress } from 'element-plus';
+import { ElAlert, ElCard, ElProgress } from 'element-plus';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getServerMonitorApi } from '#/api';
@@ -121,9 +121,10 @@ onMounted(fetchServerData);
         :closable="false"
         show-icon
       >
-        <ElButton :icon="Refresh" link type="primary" @click="fetchServerData">
+        <VbenButton class="h-8 gap-1 px-0" variant="link" @click="fetchServerData">
+          <IconifyIcon icon="lucide:rotate-cw" class="size-4" />
           重新加载
-        </ElButton>
+        </VbenButton>
       </ElAlert>
       <div class="grid min-w-0 gap-5 xl:grid-cols-2">
         <MetricSection title="CPU 信息" :loading="loading" :items="cpuStats" />

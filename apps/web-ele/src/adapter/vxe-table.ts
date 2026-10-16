@@ -4,12 +4,14 @@ import type { ComponentPropsMap, ComponentType } from './component';
 
 import { h } from 'vue';
 
+import { confirm, VbenButton, VbenTableAction } from '@vben/common-ui';
+import { $t } from '@vben/locales';
 import {
   setupVbenVxeTable,
   useVbenVxeGrid as useGrid,
 } from '@vben/plugins/vxe-table';
 
-import { ElButton, ElImage, ElPopconfirm, ElTag } from 'element-plus';
+import { ElImage, ElTag } from 'element-plus';
 
 import StatusSwitch from '#/views/admin/shared/status-switch.vue';
 
@@ -42,6 +44,10 @@ setupVbenVxeTable({
         round: true,
         showOverflow: true,
         size: 'small',
+        tooltipConfig: {
+          enterDelay: 300,
+          theme: 'light',
+        },
       } as VxeTableGridOptions,
     });
 
@@ -124,8 +130,8 @@ setupVbenVxeTable({
       renderTableDefault(renderOpts) {
         const { props } = renderOpts;
         return h(
-          ElButton,
-          { size: 'small', link: true },
+          VbenButton,
+          { size: 'sm', variant: 'link' },
           { default: () => props?.text },
         );
       },
@@ -137,8 +143,8 @@ setupVbenVxeTable({
         // 列对齐方式
         let justify: string;
         switch (column.align) {
-          case 'center': {
-            justify = 'center';
+          case 'right': {
+            justify = 'end';
             break;
           }
           case 'left': {
@@ -146,7 +152,7 @@ setupVbenVxeTable({
             break;
           }
           default: {
-            justify = 'end';
+            justify = 'center';
             break;
           }
         }
@@ -157,14 +163,11 @@ setupVbenVxeTable({
           detail: '详情',
         };
 
-        const defaultProps = { size: 'small' as const };
-
         const operations = (options || []).map((opt: any) => {
           if (typeof opt === 'string') {
-            return { code: opt, ...defaultProps, text: defaultTextMap[opt] };
+            return { code: opt, text: defaultTextMap[opt] };
           }
           return {
-            ...defaultProps,
             ...opt,
             text: opt.text || defaultTextMap[opt.code],
           };
@@ -176,63 +179,40 @@ setupVbenVxeTable({
             : !!opt.disabled;
         }
 
-        function renderBtn(opt: any, listen = true) {
+        const actions = operations.map((opt: any) => {
           const { code, text, disabled: _disabled, ...buttonProps } = opt;
-          return h(
-            ElButton,
-            {
-              ...buttonProps,
-              size: 'default',
-              style: {
-                fontSize: '16px',
-                fontWeight: 400,
-                height: '32px',
-                marginLeft: 0,
-                padding: 0,
-              },
-              type: code === 'delete' ? 'danger' : 'primary',
-              link: true,
-              disabled: resolveDisabled(opt),
-              onClick: listen
-                ? () => attrs?.onClick?.({ code, row })
-                : undefined,
+          return {
+            ...buttonProps,
+            text,
+            size: 'sm' as const,
+            variant: 'link' as const,
+            class: 'h-8 p-0 text-base font-normal',
+            danger: code === 'delete',
+            disabled: resolveDisabled(opt),
+            onClick: async () => {
+              if (code === 'delete') {
+                try {
+                  await confirm({
+                    title: opt.text,
+                    content: `确定${opt.text}「${row[attrs?.nameField || 'name']}」吗？`,
+                    confirmText: $t('common.confirm'),
+                    cancelText: $t('common.cancel'),
+                    icon: 'warning',
+                  });
+                } catch {
+                  return;
+                }
+              }
+              return attrs?.onClick?.({ code, row });
             },
-            { default: () => text },
-          );
-        }
+          };
+        });
 
-        function renderConfirm(opt: any) {
-          return h(
-            ElPopconfirm,
-            {
-              title: `确定${opt.text}「${row[attrs?.nameField || 'name']}」吗？`,
-              width: 200,
-              disabled: resolveDisabled(opt),
-              onConfirm: () => attrs?.onClick?.({ code: opt.code, row }),
-            },
-            {
-              reference: () => renderBtn({ ...opt }, false),
-            },
-          );
-        }
-
-        const btns = operations.map((opt: any) =>
-          opt.code === 'delete' ? renderConfirm(opt) : renderBtn(opt),
-        );
-
-        return h(
-          'div',
-          {
-            class: 'flex',
-            style: {
-              justifyContent: justify,
-              alignItems: 'center',
-              gap: '16px',
-              whiteSpace: 'nowrap',
-            },
-          },
-          btns,
-        );
+        return h(VbenTableAction, {
+          actions,
+          align: justify as 'center' | 'end' | 'start',
+          class: 'gap-4 whitespace-nowrap',
+        });
       },
     });
 

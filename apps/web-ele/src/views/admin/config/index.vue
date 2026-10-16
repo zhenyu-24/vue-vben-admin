@@ -4,11 +4,11 @@ import type { ConfigType } from './data';
 import { reactive, ref } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 
-import { Page } from '@vben/common-ui';
+import { confirm, Page } from '@vben/common-ui';
 
 import { CircleCheck, Lock, Message } from '@element-plus/icons-vue';
 import { useMediaQuery } from '@vueuse/core';
-import { ElIcon, ElMessageBox, ElTabPane, ElTabs } from 'element-plus';
+import { ElIcon, ElTabPane, ElTabs } from 'element-plus';
 
 import ConfigSection from './config-section.vue';
 
@@ -26,15 +26,13 @@ const tabs = [
 onBeforeRouteLeave(async () => {
   if (!Object.values(dirtyGroups).some(Boolean)) return true;
   try {
-    await ElMessageBox.confirm(
-      '尚有未保存的配置，离开将丢失修改。',
-      '离开参数配置',
-      {
-        confirmButtonText: '离开',
-        cancelButtonText: '继续编辑',
-        type: 'warning',
-      },
-    );
+    await confirm({
+      title: '离开参数配置',
+      content: '尚有未保存的配置，离开将丢失修改。',
+      confirmText: '离开',
+      cancelText: '继续编辑',
+      icon: 'warning',
+    });
     return true;
   } catch {
     return false;

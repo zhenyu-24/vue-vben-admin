@@ -10,20 +10,19 @@ import type { SysId } from '#/types/api';
 
 import { computed, nextTick, ref, watch } from 'vue';
 
-import { useVbenDrawer, useVbenModal } from '@vben/common-ui';
+import {
+  EllipsisText,
+  useVbenDrawer,
+  useVbenModal,
+  VbenButton,
+  VbenIconButton,
+} from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import {
-  ArrowDown,
-  ArrowUp,
-  Check,
-  Close,
-  Refresh,
-  Search,
-} from '@element-plus/icons-vue';
+import { Search } from '@element-plus/icons-vue';
 import {
   ElAlert,
-  ElButton,
   ElCheckbox,
   ElInput,
   ElMessage,
@@ -35,7 +34,6 @@ import {
   ElTabPane,
   ElTabs,
   ElTag,
-  ElTooltip,
   ElTree,
 } from 'element-plus';
 
@@ -181,7 +179,10 @@ async function loadScopes() {
   }
 }
 
-const filterMenu: NonNullable<TreeInstance['$props']['filterNodeMethod']> = (value, data) => {
+const filterMenu: NonNullable<TreeInstance['$props']['filterNodeMethod']> = (
+  value,
+  data,
+) => {
   const query = value.trim().toLocaleLowerCase();
   return (
     !query ||
@@ -235,42 +236,42 @@ watch(search, (value) => tree.value?.filter(value));
           />
           <div class="my-4 flex flex-wrap items-center justify-between gap-3">
             <ElRadioGroup v-model="independent" size="small">
-              <ElRadioButton :value="true">{{
-                $t('organization.role.independent')
-              }}</ElRadioButton>
-              <ElRadioButton :value="false">{{
-                $t('organization.role.linked')
-              }}</ElRadioButton>
+              <ElRadioButton :value="true">
+                {{ $t('organization.role.independent') }}
+              </ElRadioButton>
+              <ElRadioButton :value="false">
+                {{ $t('organization.role.linked') }}
+              </ElRadioButton>
             </ElRadioGroup>
             <div class="flex items-center gap-1">
-              <ElTooltip :content="$t('organization.role.selectAll')">
-                <ElButton
-                  :icon="Check"
-                  :aria-label="$t('organization.role.selectAll')"
-                  @click="tree?.setCheckedKeys(collectTreeIds(menus))"
-                />
-              </ElTooltip>
-              <ElTooltip :content="$t('organization.role.clearAll')">
-                <ElButton
-                  :icon="Close"
-                  :aria-label="$t('organization.role.clearAll')"
-                  @click="tree?.setCheckedKeys([])"
-                />
-              </ElTooltip>
-              <ElTooltip :content="$t('organization.expandAll')">
-                <ElButton
-                  :icon="ArrowDown"
-                  :aria-label="$t('organization.expandAll')"
-                  @click="expandMenus(true)"
-                />
-              </ElTooltip>
-              <ElTooltip :content="$t('organization.collapseAll')">
-                <ElButton
-                  :icon="ArrowUp"
-                  :aria-label="$t('organization.collapseAll')"
-                  @click="expandMenus(false)"
-                />
-              </ElTooltip>
+              <VbenIconButton
+                :tooltip="$t('organization.role.selectAll')"
+                :aria-label="$t('organization.role.selectAll')"
+                @click="tree?.setCheckedKeys(collectTreeIds(menus))"
+              >
+                <IconifyIcon icon="lucide:check" class="size-4" />
+              </VbenIconButton>
+              <VbenIconButton
+                :tooltip="$t('organization.role.clearAll')"
+                :aria-label="$t('organization.role.clearAll')"
+                @click="tree?.setCheckedKeys([])"
+              >
+                <IconifyIcon icon="lucide:x" class="size-4" />
+              </VbenIconButton>
+              <VbenIconButton
+                :tooltip="$t('organization.expandAll')"
+                :aria-label="$t('organization.expandAll')"
+                @click="expandMenus(true)"
+              >
+                <IconifyIcon icon="lucide:chevrons-down" class="size-4" />
+              </VbenIconButton>
+              <VbenIconButton
+                :tooltip="$t('organization.collapseAll')"
+                :aria-label="$t('organization.collapseAll')"
+                @click="expandMenus(false)"
+              >
+                <IconifyIcon icon="lucide:chevrons-up" class="size-4" />
+              </VbenIconButton>
             </div>
           </div>
           <ElTree
@@ -287,20 +288,21 @@ watch(search, (value) => tree.value?.filter(value));
           >
             <template #default="{ data }">
               <div class="flex min-w-0 flex-1 items-center gap-2 pr-2">
-                <span class="truncate" :title="data.title">{{
-                  data.title
-                }}</span>
+                <div class="min-w-0 flex-1">
+                  <EllipsisText>{{ data.title }}</EllipsisText>
+                </div>
                 <ElTag
                   size="small"
                   :type="data.type === 2 ? 'warning' : 'info'"
-                  >{{ menuTypes[data.type] }}</ElTag
                 >
-                <span
+                  {{ menuTypes[data.type] }}
+                </ElTag>
+                <div
                   v-if="data.perms"
-                  class="ml-auto truncate text-xs text-muted-foreground"
-                  :title="data.perms"
-                  >{{ data.perms }}</span
+                  class="ml-auto min-w-0 flex-1 text-right text-xs text-muted-foreground"
                 >
+                  <EllipsisText>{{ data.perms }}</EllipsisText>
+                </div>
               </div>
             </template>
           </ElTree>
@@ -312,14 +314,24 @@ watch(search, (value) => tree.value?.filter(value));
           :closable="false"
           show-icon
         >
-          <ElButton :icon="Refresh" link type="primary" @click="loadMenus">{{
-            $t('organization.retry')
-          }}</ElButton>
+          <VbenButton class="h-8 gap-1 px-0" variant="link" @click="loadMenus">
+            <IconifyIcon icon="lucide:rotate-cw" class="size-4" />
+            {{ $t('organization.retry') }}
+          </VbenButton>
         </ElAlert>
       </ElTabPane>
       <ElTabPane :label="$t('organization.role.dataPermissions')" name="scopes">
         <ElSkeleton v-if="scopesLoading" :rows="6" animated />
-        <ElTable v-else-if="scopesReady" :data="scopes" row-key="id">
+        <ElTable
+          v-else-if="scopesReady"
+          :data="scopes"
+          row-key="id"
+          :tooltip-options="{
+            effect: 'light',
+            popperClass: 'app-text-tooltip',
+            showAfter: 300,
+          }"
+        >
           <ElTableColumn width="48">
             <template #header>
               <ElCheckbox
@@ -353,24 +365,26 @@ watch(search, (value) => tree.value?.filter(value));
               <ElTag
                 :type="row.status === 1 ? 'success' : 'danger'"
                 size="small"
-                >{{
+              >
+                {{
                   $t(
                     row.status === 1
                       ? 'organization.enabled'
                       : 'organization.disabled',
                   )
-                }}</ElTag
-              >
+                }}
+              </ElTag>
             </template>
           </ElTableColumn>
           <ElTableColumn :label="$t('organization.operation')" width="130">
             <template #default="{ row }">
-              <ElButton
-                link
-                type="primary"
+              <VbenButton
+                variant="link"
+                class="h-8 px-0"
                 @click="ruleApi.setData(row).open()"
-                >{{ $t('organization.role.ruleDetails') }}</ElButton
               >
+                {{ $t('organization.role.ruleDetails') }}
+              </VbenButton>
             </template>
           </ElTableColumn>
         </ElTable>
@@ -381,9 +395,10 @@ watch(search, (value) => tree.value?.filter(value));
           :closable="false"
           show-icon
         >
-          <ElButton :icon="Refresh" link type="primary" @click="loadScopes">{{
-            $t('organization.retry')
-          }}</ElButton>
+          <VbenButton class="h-8 gap-1 px-0" variant="link" @click="loadScopes">
+            <IconifyIcon icon="lucide:rotate-cw" class="size-4" />
+            {{ $t('organization.retry') }}
+          </VbenButton>
         </ElAlert>
       </ElTabPane>
     </ElTabs>

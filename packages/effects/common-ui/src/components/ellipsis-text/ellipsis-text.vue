@@ -1,18 +1,30 @@
 <script setup lang="ts">
 import type { CSSProperties } from 'vue';
 
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  onUpdated,
-  ref,
-  watchEffect,
-} from 'vue';
+import { computed, onMounted, onUpdated, ref, watch } from 'vue';
 
 import { VbenTooltip } from '@vben-core/shadcn-ui';
 
-import { useElementSize } from '@vueuse/core';
+import { useElementSize, useMutationObserver } from '@vueuse/core';
+
+defineOptions({ inheritAttrs: false });
+
+const props = withDefaults(defineProps<Props>(), {
+  expand: false,
+  line: 1,
+  maxWidth: '100%',
+  placement: 'top',
+  tooltip: true,
+  tooltipWhenEllipsis: true,
+  ellipsisThreshold: 3,
+  tooltipBackgroundColor: '',
+  tooltipColor: '',
+  tooltipFontSize: 14,
+  tooltipMaxWidth: 360,
+  tooltipOverlayStyle: () => ({ textAlign: 'left' }),
+});
+
+const emit = defineEmits<{ expandChange: [boolean] }>();
 
 interface Props {
   /**
@@ -42,7 +54,7 @@ interface Props {
   tooltip?: boolean;
   /**
    * 是否只在文本被截断时显示提示框
-   * @default false
+   * @default true
    */
   tooltipWhenEllipsis?: boolean;
   /**
@@ -63,32 +75,16 @@ interface Props {
    */
   tooltipFontSize?: number;
   /**
-   * 提示框内容最大宽度，单位px，默认不设置时，提示文本内容自动与展示文本宽度保持一致
+   * 提示框内容最大宽度，单位px
+   * @default 360
    */
   tooltipMaxWidth?: number;
   /**
    * 提示框内容区域样式
-   * @default { textAlign: 'justify' }
+   * @default { textAlign: 'left' }
    */
   tooltipOverlayStyle?: CSSProperties;
 }
-
-const props = withDefaults(defineProps<Props>(), {
-  expand: false,
-  line: 1,
-  maxWidth: '100%',
-  placement: 'top',
-  tooltip: true,
-  tooltipWhenEllipsis: false,
-  ellipsisThreshold: 3,
-  tooltipBackgroundColor: '',
-  tooltipColor: '',
-  tooltipFontSize: 14,
-  tooltipMaxWidth: undefined,
-  tooltipOverlayStyle: () => ({ textAlign: 'justify' }),
-});
-
-const emit = defineEmits<{ expandChange: [boolean] }>();
 
 const textMaxWidth = computed(() => {
   if (typeof props.maxWidth === 'number') {
@@ -98,10 +94,9 @@ const textMaxWidth = computed(() => {
 });
 const ellipsis = ref();
 const isExpand = ref(false);
-const defaultTooltipMaxWidth = ref();
 const isEllipsis = ref(false);
 
-const { width: eleWidth } = useElementSize(ellipsis);
+const { width: eleWidth, height: eleHeight } = useElementSize(ellipsis);
 
 // 检测文本是否被截断
 const checkEllipsis = () => {
@@ -128,23 +123,17 @@ const checkEllipsis = () => {
       : heightDiff > props.ellipsisThreshold;
 };
 
-// 使用 ResizeObserver 监听尺寸变化
-let resizeObserver: null | ResizeObserver = null;
-
-onMounted(() => {
-  if (typeof ResizeObserver !== 'undefined' && props.tooltipWhenEllipsis) {
-    resizeObserver = new ResizeObserver(() => {
-      checkEllipsis();
-    });
-
-    if (ellipsis.value) {
-      resizeObserver.observe(ellipsis.value);
-    }
-  }
-
-  // 初始检测
-  checkEllipsis();
+watch(
+  [eleWidth, eleHeight, () => props.tooltipWhenEllipsis, () => props.line],
+  checkEllipsis,
+  { flush: 'post' },
+);
+useMutationObserver(ellipsis, checkEllipsis, {
+  characterData: true,
+  childList: true,
+  subtree: true,
 });
+onMounted(checkEllipsis);
 
 // 使用onUpdated钩子检测内容变化
 onUpdated(() => {
@@ -152,23 +141,6 @@ onUpdated(() => {
     checkEllipsis();
   }
 });
-
-onBeforeUnmount(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
-});
-
-watchEffect(
-  () => {
-    if (props.tooltip && eleWidth.value) {
-      defaultTooltipMaxWidth.value =
-        props.tooltipMaxWidth ?? eleWidth.value + 24;
-    }
-  },
-  { flush: 'post' },
-);
 
 function onExpand() {
   isExpand.value = !isExpand.value;
@@ -183,11 +155,12 @@ function handleExpand() {
 }
 </script>
 <template>
-  <div>
+  <div class="min-w-0 max-w-full">
     <VbenTooltip
       :content-style="{
         ...tooltipOverlayStyle,
-        maxWidth: `${defaultTooltipMaxWidth}px`,
+        maxWidth: `min(${tooltipMaxWidth}px, calc(100vw - 32px))`,
+        overflowWrap: 'anywhere',
         fontSize: `${tooltipFontSize}px`,
         color: tooltipColor,
         backgroundColor: tooltipBackgroundColor,

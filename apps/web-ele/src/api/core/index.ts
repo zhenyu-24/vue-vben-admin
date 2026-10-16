@@ -6,6 +6,7 @@ export * from './log';
 export * from './menu';
 export * from './monitor';
 export * from './notice';
+export * from './plugin';
 export * from './role';
 export * from './scheduler';
 export * from './user';

@@ -7,9 +7,9 @@ import type { OperaLogResult } from '#/api';
 import { computed, ref } from 'vue';
 
 import { JsonViewer, Page, useVbenDrawer, VbenButton } from '@vben/common-ui';
+import { Trash2 } from '@vben/icons';
 import { usePreferences } from '@vben/preferences';
 
-import { Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElTag } from 'element-plus';
 
 import { deleteOperaLogApi, getOperaLogListApi } from '#/api';
@@ -98,12 +98,13 @@ const operaLogDescItems = computed(() => {
     <Grid>
       <template #toolbar-actions>
         <VbenButton
+          class="gap-2"
           variant="destructive"
           :disabled="disabled"
           :loading="loading"
           @click="deleteSelected"
         >
-          <Delete class="size-5" />
+          <Trash2 v-if="!loading" class="size-4 shrink-0" aria-hidden="true" />
           删除日志
         </VbenButton>
       </template>

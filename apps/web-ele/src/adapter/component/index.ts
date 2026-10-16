@@ -26,11 +26,17 @@ import type {
   BaseFormComponentType,
   IconPickerProps,
 } from '@vben/common-ui';
+import type { TipTapProps } from '@vben/plugins/tiptap';
 import type { Recordable } from '@vben/types';
 
 import { defineAsyncComponent, defineComponent, h, ref } from 'vue';
 
-import { ApiComponent, globalShareState, IconPicker } from '@vben/common-ui';
+import {
+  ApiComponent,
+  globalShareState,
+  IconPicker,
+  VbenButton,
+} from '@vben/common-ui';
 import { $t } from '@vben/locales';
 
 import { ElNotification } from 'element-plus';
@@ -38,12 +44,6 @@ import { ElNotification } from 'element-plus';
 type ElTreeSelectSchemaProps = InstanceType<typeof ElTreeSelectType>['$props'];
 type ElTimePickerSchemaProps = InstanceType<typeof ElTimePickerType>['$props'];
 
-const ElButton = defineAsyncComponent(() =>
-  Promise.all([
-    import('element-plus/es/components/button/index'),
-    import('element-plus/es/components/button/style/css'),
-  ]).then(([res]) => res.ElButton),
-);
 const ElCheckbox = defineAsyncComponent(() =>
   Promise.all([
     import('element-plus/es/components/checkbox/index'),
@@ -140,6 +140,9 @@ const ElUpload = defineAsyncComponent(() =>
     import('element-plus/es/components/upload/style/css'),
   ]).then(([res]) => res.ElUpload),
 );
+const RichEditor = defineAsyncComponent(() =>
+  import('@vben/plugins/tiptap').then((res) => res.VbenTiptap),
+);
 
 const withDefaultPlaceholder = (
   component: Component,
@@ -187,6 +190,7 @@ export type ComponentType =
   | 'Input'
   | 'InputNumber'
   | 'RadioGroup'
+  | 'RichEditor'
   | 'Select'
   | 'Space'
   | 'Switch'
@@ -209,6 +213,7 @@ export interface ComponentPropsMap {
   Input: InputProps;
   InputNumber: InputNumberProps;
   RadioGroup: RadioGroupProps;
+  RichEditor: TipTapProps;
   Select: SelectV2Props;
   Space: SpaceProps;
   Switch: SwitchProps;
@@ -271,11 +276,11 @@ async function initComponentAdapter() {
     },
     // 自定义默认按钮
     DefaultButton: (props, { attrs, slots }) => {
-      return h(ElButton, { ...props, attrs, type: 'info' }, slots);
+      return h(VbenButton, { variant: 'outline', ...props, ...attrs }, slots);
     },
     // 自定义主要按钮
     PrimaryButton: (props, { attrs, slots }) => {
-      return h(ElButton, { ...props, attrs, type: 'primary' }, slots);
+      return h(VbenButton, { ...props, ...attrs }, slots);
     },
     Divider: ElDivider,
     IconPicker: withDefaultPlaceholder(IconPicker, 'select', {
@@ -306,6 +311,7 @@ async function initComponentAdapter() {
         { ...slots, default: defaultSlot },
       );
     },
+    RichEditor,
     Select: (props, { attrs, slots }) => {
       return h(ElSelectV2, { ...props, attrs }, slots);
     },

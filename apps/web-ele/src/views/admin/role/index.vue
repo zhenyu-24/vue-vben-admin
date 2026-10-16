@@ -5,9 +5,8 @@ import type { SysRoleForm, SysRoleResult } from '#/api';
 import { computed, ref, watch } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import { Plus } from '@vben/icons';
 import { $t, useI18n } from '@vben/locales';
-
-import { Plus } from '@element-plus/icons-vue';
 
 import { useVbenForm } from '#/adapter/form';
 import {
@@ -93,8 +92,8 @@ watch(locale, () => {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-actions>
-        <VbenButton @click="modalApi.setData({}).open()">
-          <Plus class="mr-1 size-4" />
+        <VbenButton class="gap-2" @click="modalApi.setData({}).open()">
+          <Plus class="size-4 shrink-0" aria-hidden="true" />
           {{ $t('organization.role.add') }}
         </VbenButton>
       </template>

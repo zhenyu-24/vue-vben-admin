@@ -4,12 +4,12 @@ import type { SysUserResult } from '#/api';
 
 import { watch } from 'vue';
 
-import { Page, VbenButton } from '@vben/common-ui';
+import { EllipsisText, Page, VbenAvatar, VbenButton } from '@vben/common-ui';
+import { Plus } from '@vben/icons';
 import { $t, useI18n } from '@vben/locales';
 import { preferences } from '@vben/preferences';
 
-import { Plus } from '@element-plus/icons-vue';
-import { ElAvatar, ElTag, ElTooltip } from 'element-plus';
+import { ElTag } from 'element-plus';
 
 import { deleteSysUserApi, getUsersApi } from '#/api';
 
@@ -63,13 +63,14 @@ watch(locale, updateSchemas);
   <Page auto-content-height>
     <Grid>
       <template #toolbar-actions>
-        <VbenButton @click="userModalApi.setData({}).open()">
-          <Plus class="mr-1 size-5" />
+        <VbenButton class="gap-2" @click="userModalApi.setData({}).open()">
+          <Plus class="size-4 shrink-0" aria-hidden="true" />
           {{ $t('page.admin.userPage.modal.add') }}
         </VbenButton>
       </template>
       <template #avatar="{ row }">
-        <ElAvatar
+        <VbenAvatar
+          :alt="row.nickname || row.username"
           :src="row.avatar || preferences.app.defaultAvatar"
           :size="32"
         />
@@ -81,32 +82,24 @@ watch(locale, updateSchemas);
         <span v-else>{{ $t('page.admin.userPage.message.unbound') }}</span>
       </template>
       <template #roles="{ row }">
-        <template v-if="row.roles.length === 1">
-          <ElTag type="primary" size="small">
-            {{ row.roles[0]?.name }}
-          </ElTag>
-        </template>
-        <template v-else-if="row.roles.length > 1">
-          <ElTooltip
-            placement="top"
-            :content="
+        <EllipsisText v-if="row.roles.length > 0">
+          <template #tooltip>
+            {{
               row.roles
                 .map((role: SysUserResult['roles'][number]) => role.name)
                 .join(', ')
-            "
-            :width="300"
+            }}
+          </template>
+          <ElTag
+            v-for="role in row.roles"
+            :key="role.id"
+            type="primary"
+            size="small"
+            class="mr-1"
           >
-            <ElTag
-              v-for="role in row.roles"
-              :key="role.name"
-              type="primary"
-              size="small"
-              class="mr-1"
-            >
-              {{ role.name }}
-            </ElTag>
-          </ElTooltip>
-        </template>
+            {{ role.name }}
+          </ElTag>
+        </EllipsisText>
         <span v-else>{{ $t('page.admin.userPage.message.unbound') }}</span>
       </template>
     </Grid>

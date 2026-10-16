@@ -3,13 +3,12 @@ import type { RedisMonitorResult } from '#/api';
 
 import { computed, onMounted } from 'vue';
 
-import { AnalysisChartCard, Page } from '@vben/common-ui';
+import { AnalysisChartCard, Page, VbenButton } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 
-import { Refresh } from '@element-plus/icons-vue';
 import { useMediaQuery } from '@vueuse/core';
 import {
   ElAlert,
-  ElButton,
   ElCard,
   ElDescriptions,
   ElDescriptionsItem,
@@ -69,9 +68,10 @@ onMounted(refresh);
       :closable="false"
       show-icon
     >
-      <ElButton :icon="Refresh" link type="primary" @click="refresh">
+      <VbenButton class="h-8 gap-1 px-0" variant="link" @click="refresh">
+        <IconifyIcon icon="lucide:rotate-cw" class="size-4" />
         重新加载
-      </ElButton>
+      </VbenButton>
     </ElAlert>
     <ElCard v-loading="loading" shadow="never">
       <template #header>服务器信息</template>

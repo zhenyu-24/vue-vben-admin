@@ -81,6 +81,7 @@
     "redis": "Redis 监控",
     "server": "服务器监控",
     "notice": "通知公告",
-    "config": "参数配置"
+    "config": "参数配置",
+    "plugin": "插件管理"
   }
 }

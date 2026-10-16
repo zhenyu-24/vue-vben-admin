@@ -4,8 +4,8 @@ import type { TaskSchedulerResult } from '#/api';
 
 import { h } from 'vue';
 
-import { Setting } from '@element-plus/icons-vue';
-import { ElButton } from 'element-plus';
+import { VbenIconButton } from '@vben/common-ui';
+import { Settings } from '@vben/icons';
 
 import { z } from '#/adapter/form';
 import { getTaskRegisteredApi } from '#/api';
@@ -44,7 +44,7 @@ export function useColumns(
       field: 'schedule',
       title: '触发策略',
       minWidth: 160,
-      slots: { default: 'schedule' },
+      slots: { default: 'schedule', header: 'scheduleHeader' },
     },
     {
       field: 'status',
@@ -218,13 +218,16 @@ export function createSchema(openCronBuilder: () => void): VbenFormSchema[] {
         .refine(validCron, '请输入合法的五段 Cron 表达式（星期为 0–6）'),
       renderComponentContent: () => ({
         suffix: () =>
-          h(ElButton, {
-            text: true,
-            icon: Setting,
-            title: '配置执行计划',
-            'aria-label': '配置执行计划',
-            onClick: openCronBuilder,
-          }),
+          h(
+            VbenIconButton,
+            {
+              class: 'size-6 rounded-sm',
+              tooltip: '配置执行计划',
+              'aria-label': '配置执行计划',
+              onClick: openCronBuilder,
+            },
+            () => h(Settings, { class: 'size-4' }),
+          ),
       }),
     },
     {

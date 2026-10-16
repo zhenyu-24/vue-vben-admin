@@ -50,6 +50,7 @@ export function useColumns(
     {
       field: 'operation',
       title: $t('organization.operation'),
+      align: 'center',
       fixed: 'right',
       width: 150,
       showOverflow: false,

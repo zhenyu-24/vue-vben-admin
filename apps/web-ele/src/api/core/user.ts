@@ -1,14 +1,28 @@
-import type { UserInfo } from '@vben/types';
-
 import type { PaginationResult, SysId } from '#/types/api';
 
 import { requestClient } from '#/api/request';
+
+export interface CurrentUserInfo {
+  id: SysId;
+  username: string;
+  nickname: string;
+  avatar?: null | string;
+  email?: null | string;
+  phone?: null | string;
+  roles: string[];
+  is_superuser: boolean;
+  homePath?: string;
+  realName?: string;
+  desc?: string;
+  token?: string;
+  userId?: string;
+}
 
 /**
  * 获取用户信息（fba 后端路径为 /sys/users/me）
  */
 export async function getUserInfoApi() {
-  return requestClient.get<UserInfo>('/v1/sys/users/me');
+  return requestClient.get<CurrentUserInfo>('/v1/sys/users/me');
 }
 
 /** 修改密码接口参数 */

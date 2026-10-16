@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-import { Profile, VCropper, VbenModal, useVbenModal } from '@vben/common-ui';
+import { Profile, useVbenModal, VCropper } from '@vben/common-ui';
 import { useUserStore } from '@vben/stores';
 
 import { ElMessage } from 'element-plus';
@@ -23,7 +23,7 @@ const cropperImageUrl = ref('');
 const cropperRef = ref<InstanceType<typeof VCropper> | null>(null);
 let pendingFile: File | null = null;
 
-const [cropperModal, cropperModalApi] = useVbenModal({
+const [CropperModal, cropperModalApi] = useVbenModal({
   destroyOnClose: true,
   closeOnClickModal: false,
   title: '裁剪头像',
@@ -31,11 +31,15 @@ const [cropperModal, cropperModalApi] = useVbenModal({
     if (!cropperRef.value || !pendingFile) return;
     cropperModalApi.lock();
     try {
-      const outputFormat = pendingFile.type === 'image/webp' ? 'image/webp' as const
-        : pendingFile.type === 'image/png' ? 'image/png' as const
-        : 'image/jpeg' as const;
-      const outputExt = outputFormat === 'image/jpeg' ? 'jpg' : outputFormat.split('/')[1];
-      const croppedBlob = await cropperRef.value.getCropImage(outputFormat, 0.92, 'blob');
+      const outputFormat =
+        pendingFile.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+      const outputExt =
+        outputFormat === 'image/jpeg' ? 'jpg' : outputFormat.split('/')[1];
+      const croppedBlob = await cropperRef.value.getCropImage(
+        outputFormat,
+        0.92,
+        'blob',
+      );
       if (!croppedBlob) throw new Error('裁剪失败，请重试');
       const croppedFile = new File(
         [croppedBlob as Blob],
@@ -47,7 +51,8 @@ const [cropperModal, cropperModalApi] = useVbenModal({
       ElMessage.success('头像更新成功');
       await cropperModalApi.close();
     } catch (error: any) {
-      const msg = error?.response?.data?.msg || error?.message || '头像上传失败';
+      const msg =
+        error?.response?.data?.msg || error?.message || '头像上传失败';
       ElMessage.error(msg);
       cropperModalApi.unlock();
     }
@@ -98,7 +103,13 @@ async function handleAvatarChange(file: File) {
     return;
   }
   // 验证文件类型
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml',
+  ];
   if (!allowedTypes.includes(file.type)) {
     ElMessage.error('仅支持 JPG/PNG/GIF/WEBP/SVG 格式');
     return;
@@ -114,7 +125,8 @@ async function handleAvatarChange(file: File) {
       }
       ElMessage.success('动图已直接上传（裁剪仅支持静态图片）');
     } catch (error: any) {
-      const msg = error?.response?.data?.msg || error?.message || '头像上传失败';
+      const msg =
+        error?.response?.data?.msg || error?.message || '头像上传失败';
       ElMessage.error(msg);
     } finally {
       avatarUploading.value = false;
@@ -127,7 +139,6 @@ async function handleAvatarChange(file: File) {
   cropperImageUrl.value = URL.createObjectURL(file);
   cropperModalApi.open();
 }
-
 </script>
 <template>
   <Profile
@@ -148,7 +159,7 @@ async function handleAvatarChange(file: File) {
   </Profile>
 
   <!-- 头像裁剪弹窗 -->
-  <VbenModal :modal-api="cropperModalApi">
+  <CropperModal>
     <div class="flex justify-center">
       <VCropper
         ref="cropperRef"
@@ -158,5 +169,5 @@ async function handleAvatarChange(file: File) {
         :height="420"
       />
     </div>
-  </VbenModal>
+  </CropperModal>
 </template>

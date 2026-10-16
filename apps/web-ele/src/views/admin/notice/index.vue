@@ -5,10 +5,8 @@ import type { CreateNoticeParams, NoticeResult } from '#/api';
 import { computed, ref } from 'vue';
 
 import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import { Plus } from '@vben/icons';
 import { $t } from '@vben/locales';
-
-import { Plus } from '@element-plus/icons-vue';
-import { marked } from 'marked';
 
 import { useVbenForm } from '#/adapter/form';
 import {
@@ -17,6 +15,8 @@ import {
   getNoticeListApi,
   updateNoticeApi,
 } from '#/api';
+import NoticeContent from '#/components/notice-content.vue';
+import { noticeContentHtml } from '#/utils/notice-content';
 
 import { pagedQuery, useAdminGrid } from '../shared/useAdminGrid';
 import { useDeleteRow } from '../shared/useDeleteRow';
@@ -29,7 +29,6 @@ const [Grid, gridApi] = useAdminGrid<NoticeResult>({
   columns: () => useColumns(onActionClick),
   schema: () => querySchema,
   query: pagedQuery(getNoticeListApi),
-  gridOptions: { printConfig: {}, toolbarConfig: { print: true } },
 });
 const deleteRow = useDeleteRow<NoticeResult>(
   gridApi,
@@ -70,7 +69,7 @@ const modalTitle = computed(() => {
 
 const [Modal, modalApi] = useVbenModal({
   destroyOnClose: true,
-  class: 'w-[640px] max-w-[calc(100vw-2rem)]',
+  class: 'w-[1080px] max-w-[calc(100vw-2rem)]',
   onConfirm: useFormSubmit<CreateNoticeParams>({
     form: () => formApi,
     modal: (): ReturnType<typeof useVbenModal>[1] => modalApi,
@@ -86,18 +85,19 @@ const [Modal, modalApi] = useVbenModal({
     const data = modalApi.getData<Partial<NoticeResult>>();
     editing.value = data.id === undefined ? undefined : (data as NoticeResult);
     await formApi.resetForm();
-    await formApi.setValues(noticeValues(editing.value));
+    const values = noticeValues(editing.value);
+    await formApi.setValues({
+      ...values,
+      content: noticeContentHtml(values.content),
+    });
   },
 });
 
 const preview = ref<NoticeResult>();
-const previewHtml = computed(() =>
-  marked.parse(preview.value?.content ?? '', { async: false, breaks: true }),
-);
 
 const [PreviewModal, previewModalApi] = useVbenModal({
   title: '通知公告预览',
-  class: 'w-[640px] max-w-[calc(100vw-2rem)]',
+  class: 'w-[1080px] max-w-[calc(100vw-2rem)]',
   footer: false,
   onOpenChange(isOpen) {
     preview.value = isOpen
@@ -111,8 +111,8 @@ const [PreviewModal, previewModalApi] = useVbenModal({
   <Page auto-content-height>
     <Grid>
       <template #toolbar-actions>
-        <VbenButton @click="() => modalApi.setData(null).open()">
-          <Plus class="mr-1 size-5" />
+        <VbenButton class="gap-2" @click="modalApi.setData({}).open()">
+          <Plus class="size-4 shrink-0" aria-hidden="true" />
           新增通知公告
         </VbenButton>
       </template>
@@ -121,11 +121,7 @@ const [PreviewModal, previewModalApi] = useVbenModal({
       <Form />
     </Modal>
     <PreviewModal>
-      <div class="mb-3 text-center text-xl font-bold">{{ preview?.title }}</div>
-      <div
-        class="prose prose-sm dark:prose-invert max-w-none break-words rounded border bg-gray-50 p-4 dark:bg-gray-900"
-        v-html="previewHtml"
-      ></div>
+      <NoticeContent :title="preview?.title" :content="preview?.content" />
     </PreviewModal>
   </Page>
 </template>

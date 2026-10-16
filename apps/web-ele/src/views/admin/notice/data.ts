@@ -2,6 +2,9 @@ import type { VbenFormSchema } from '#/adapter/form';
 import type { OnActionClickFn, VxeGridProps } from '#/adapter/vxe-table';
 import type { CreateNoticeParams, NoticeResult } from '#/api';
 
+import { z } from '#/adapter/form';
+import { hasNoticeContent } from '#/utils/notice-content';
+
 const typeOptions = [
   { color: 'success', label: '通知', value: 0 },
   { color: 'warning', label: '公告', value: 1 },
@@ -139,15 +142,16 @@ export const schema: VbenFormSchema[] = [
     rules: 'required',
   },
   {
-    component: 'Input',
+    component: 'RichEditor',
     componentProps: {
-      type: 'textarea',
-      rows: 6,
-      placeholder: '支持 Markdown 语法',
+      minHeight: 'min(420px, 42dvh)',
+      maxHeight: 'min(600px, 55dvh)',
+      placeholder: '请输入公告内容',
+      class: 'w-full min-w-0 rounded-md',
     },
     formItemClass: 'md:col-span-2',
     fieldName: 'content',
     label: '内容',
-    rules: 'required',
+    rules: z.string().refine(hasNoticeContent, '请输入内容'),
   },
 ];

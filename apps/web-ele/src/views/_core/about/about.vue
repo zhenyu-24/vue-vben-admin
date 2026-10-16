@@ -3,12 +3,8 @@ import type { AboutProps, DescriptionItem } from './about';
 
 import { h } from 'vue';
 
-import {
-  VBEN_DOC_URL,
-  VBEN_GITHUB_URL,
-} from '@vben/constants';
-
 import { Page } from '@vben/common-ui';
+import { VBEN_GITHUB_URL } from '@vben/constants';
 
 interface Props extends AboutProps {}
 
@@ -20,7 +16,6 @@ withDefaults(defineProps<Props>(), {
   name: 'Vben Admin',
   title: '关于项目',
 });
-
 
 const renderLink = (href: string, text: string) =>
   h(
@@ -36,7 +31,6 @@ const __ADMIN_METADATA__ = {
   version: '1.0.0',
 };
 
-
 declare global {
   const __ADMIN_METADATA__: {
     authorEmail: string;
@@ -46,20 +40,16 @@ declare global {
   };
 }
 
-const {
-  authorEmail,
-  authorName,
-  authorUrl,
-  version,
-} = __ADMIN_METADATA__ || {};
+const { authorEmail, authorName, authorUrl, version } =
+  __ADMIN_METADATA__ || {};
 
 const vbenDescriptionItems: DescriptionItem[] = [
   { content: version, title: '版本号' },
   // { content: license, title: '开源许可协议' },
   // { content: buildTime, title: '最后构建时间' },
-//   { content: renderLink(homepage, '点击查看'), title: '主页' },
-//   { content: renderLink(VBEN_DOC_URL, '点击查看'), title: '文档地址' },
-//   { content: renderLink(VBEN_PREVIEW_URL, '点击查看'), title: '预览地址' },
+  //   { content: renderLink(homepage, '点击查看'), title: '主页' },
+  //   { content: renderLink(VBEN_DOC_URL, '点击查看'), title: '文档地址' },
+  //   { content: renderLink(VBEN_PREVIEW_URL, '点击查看'), title: '预览地址' },
   { content: renderLink(VBEN_GITHUB_URL, '点击查看'), title: 'Github' },
   {
     content: h('div', [
@@ -95,7 +85,9 @@ const vbenDescriptionItems: DescriptionItem[] = [
               </dt>
               <dd class="mt-1 text-sm/6 text-foreground sm:mt-2">
                 <!-- 根据 content 类型动态渲染：字符串直接显示，VNode 则作为组件渲染 -->
-                <template v-if="typeof item.content === 'string'">{{ item.content }}</template>
+                <span v-if="typeof item.content === 'string'">
+                  {{ item.content }}
+                </span>
                 <component v-else :is="() => item.content" />
               </dd>
             </div>

@@ -18,7 +18,7 @@ const formSchema = computed((): VbenFormSchema[] => {
       component: 'Input',
       label: '昵称',
     },
-{
+    {
       fieldName: 'email',
       component: 'Input',
       label: '邮箱',
@@ -28,7 +28,6 @@ const formSchema = computed((): VbenFormSchema[] => {
       component: 'Input',
       label: '手机号',
     },
-
   ];
 });
 
@@ -38,7 +37,6 @@ onMounted(async () => {
     realName: data.nickname ?? data.realName ?? '',
     email: data.email ?? '',
     phone: data.phone ?? '',
-
   });
 });
 
@@ -58,5 +56,9 @@ async function handleSubmit(values: Record<string, any>) {
 }
 </script>
 <template>
-  <ProfileBaseSetting ref="profileBaseSettingRef" :form-schema="formSchema" @submit="handleSubmit" />
+  <ProfileBaseSetting
+    ref="profileBaseSettingRef"
+    :form-schema="formSchema"
+    @submit="handleSubmit"
+  />
 </template>

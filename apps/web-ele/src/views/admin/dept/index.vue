@@ -5,11 +5,14 @@ import type { SysId } from '#/types/api';
 
 import { computed, ref, watch } from 'vue';
 
-import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import {
+  Page,
+  useVbenModal,
+  VbenButton,
+  VbenIconButton,
+} from '@vben/common-ui';
+import { ChevronsDown, Plus } from '@vben/icons';
 import { $t, useI18n } from '@vben/locales';
-
-import { ArrowDown, ArrowUp, Plus } from '@element-plus/icons-vue';
-import { ElButton, ElTooltip } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
 import {
@@ -139,26 +142,26 @@ watch(locale, () => {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-actions>
-        <VbenButton @click="modalApi.setData({}).open()">
-          <Plus class="mr-1 size-4" />
+        <VbenButton class="gap-2" @click="modalApi.setData({}).open()">
+          <Plus class="size-4 shrink-0" aria-hidden="true" />
           {{ $t('organization.dept.add') }}
         </VbenButton>
       </template>
       <template #toolbar-tools>
-        <ElTooltip :content="$t('organization.expandAll')">
-          <ElButton
-            :icon="ArrowDown"
-            :aria-label="$t('organization.expandAll')"
-            @click="gridApi.grid.setAllTreeExpand(true)"
-          />
-        </ElTooltip>
-        <ElTooltip :content="$t('organization.collapseAll')">
-          <ElButton
-            :icon="ArrowUp"
-            :aria-label="$t('organization.collapseAll')"
-            @click="gridApi.grid.setAllTreeExpand(false)"
-          />
-        </ElTooltip>
+        <VbenIconButton
+          :tooltip="$t('organization.expandAll')"
+          :aria-label="$t('organization.expandAll')"
+          @click="gridApi.grid.setAllTreeExpand(true)"
+        >
+          <ChevronsDown class="size-4" aria-hidden="true" />
+        </VbenIconButton>
+        <VbenIconButton
+          :tooltip="$t('organization.collapseAll')"
+          :aria-label="$t('organization.collapseAll')"
+          @click="gridApi.grid.setAllTreeExpand(false)"
+        >
+          <ChevronsDown class="size-4 rotate-180" aria-hidden="true" />
+        </VbenIconButton>
       </template>
     </Grid>
     <Modal :title="title"><Form /></Modal>

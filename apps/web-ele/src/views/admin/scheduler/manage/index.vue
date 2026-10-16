@@ -6,10 +6,10 @@ import type { SysId } from '#/types/api';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { Page, useVbenModal, VbenButton } from '@vben/common-ui';
+import { Page, useVbenModal, VbenButton, VbenTooltip } from '@vben/common-ui';
+import { CircleHelp, Plus } from '@vben/icons';
 
-import { Plus } from '@element-plus/icons-vue';
-import { ElButton, ElMessage, ElPopover } from 'element-plus';
+import { ElMessage } from 'element-plus';
 
 import { useVbenForm } from '#/adapter/form';
 import {
@@ -22,8 +22,8 @@ import {
   updateTaskSchedulerStatusApi,
 } from '#/api';
 
-import { pagedQuery, useAdminGrid } from '../../shared/useAdminGrid';
 import StatusSwitch from '../../shared/status-switch.vue';
+import { pagedQuery, useAdminGrid } from '../../shared/useAdminGrid';
 import { useDeleteRow } from '../../shared/useDeleteRow';
 import { useFormSubmit } from '../../shared/useFormSubmit';
 import CronBuilder from './cron-builder.vue';
@@ -123,21 +123,50 @@ async function rowAction(id: SysId, action: 'execute' | 'status') {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-actions>
-        <VbenButton @click="modalApi.setData(null).open()"
-          ><Plus class="mr-1 size-5" />新增任务</VbenButton
-        >
+        <VbenButton class="gap-2" @click="modalApi.setData({}).open()">
+          <Plus class="size-4 shrink-0" aria-hidden="true" />
+          新增任务
+        </VbenButton>
+      </template>
+      <template #scheduleHeader>
+        <span class="inline-flex items-center gap-1 align-middle">
+          触发策略
+          <VbenTooltip side="top">
+            <template #trigger>
+              <VbenButton
+                class="size-4 shrink-0 cursor-help rounded-full p-0 text-muted-foreground"
+                size="icon"
+                variant="ghost"
+                aria-label="触发策略说明"
+                :tabindex="0"
+              >
+                <CircleHelp class="size-3.5 shrink-0" />
+              </VbenButton>
+            </template>
+            <span>Crontab 表达式：</span>
+            <a
+              class="break-all text-primary hover:underline"
+              href="https://docs.celery.dev/en/latest/userguide/periodic-tasks.html#crontab-schedules"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              https://docs.celery.dev/en/latest/userguide/periodic-tasks.html#crontab-schedules
+            </a>
+          </VbenTooltip>
+        </span>
       </template>
       <template #schedule="{ row }">
-        <ElPopover
-          trigger="hover"
-          title="预计执行时间（浏览器本地时区）"
-          :width="300"
-        >
-          <template #reference
-            ><ElButton link type="primary">{{
-              scheduleLabel(row)
-            }}</ElButton></template
-          >
+        <VbenTooltip side="top">
+          <template #trigger>
+            <VbenButton
+              class="h-6 bg-muted px-2 font-mono"
+              variant="link"
+              size="sm"
+            >
+              {{ scheduleLabel(row) }}
+            </VbenButton>
+          </template>
+          <div class="mb-1 font-medium">预计执行时间（浏览器本地时区）</div>
           <div
             v-for="(time, index) in nextRuns(row)"
             :key="index"
@@ -146,7 +175,7 @@ async function rowAction(id: SysId, action: 'execute' | 'status') {
             {{ time }}
           </div>
           <span v-if="nextRuns(row).length === 0">暂无后续执行计划</span>
-        </ElPopover>
+        </VbenTooltip>
       </template>
       <template #status="{ row }">
         <StatusSwitch
@@ -157,12 +186,15 @@ async function rowAction(id: SysId, action: 'execute' | 'status') {
         />
       </template>
       <template #execute="{ row }">
-        <ElButton
-          class="scheduler-execute"
+        <VbenButton
+          class="px-2.5 text-base font-normal"
+          variant="outline"
+          size="sm"
           :loading="busy[`execute:${row.id}`]"
           @click="rowAction(row.id, 'execute')"
-          >执行</ElButton
         >
+          执行
+        </VbenButton>
       </template>
     </Grid>
     <Modal :title="title"><Form /></Modal>
@@ -172,13 +204,3 @@ async function rowAction(id: SysId, action: 'execute' | 'status') {
     />
   </Page>
 </template>
-
-<style scoped>
-.scheduler-execute {
-  height: 32px;
-  padding: 0 10px;
-  font-size: 16px;
-  font-weight: 400;
-  border-radius: 6px;
-}
-</style>

@@ -19,6 +19,8 @@ interface Props extends VbenButtonProps {
   variant?: ButtonVariants['variant'];
 }
 
+defineOptions({ inheritAttrs: false });
+
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   onClick: () => {},
@@ -39,6 +41,7 @@ const showTooltip = computed(() => !!slots.tooltip || !!props.tooltip);
     :disabled="disabled"
     :variant="variant"
     size="icon"
+    v-bind="$attrs"
     @click="onClick"
   >
     <slot></slot>
@@ -55,6 +58,7 @@ const showTooltip = computed(() => !!slots.tooltip || !!props.tooltip);
         :disabled="disabled"
         :variant="variant"
         size="icon"
+        v-bind="$attrs"
         @click="onClick"
       >
         <slot></slot>

@@ -81,6 +81,7 @@
     "redis": "Redis Monitor",
     "server": "Server Monitor",
     "notice": "Notice",
-    "config": "Parameter Config"
+    "config": "Parameter Config",
+    "plugin": "Plugin Management"
   }
 }

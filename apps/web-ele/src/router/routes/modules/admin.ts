@@ -7,6 +7,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       icon: 'ic:baseline-admin-panel-settings',
       order: 900,
+      superuserOnly: true,
       title: $t('page.admin.title'),
     },
     name: 'Admin',
@@ -146,6 +147,15 @@ const routes: RouteRecordRaw[] = [
             },
           },
         ],
+      },
+      {
+        meta: {
+          icon: 'lucide:puzzle',
+          title: $t('page.admin.plugin'),
+        },
+        name: 'AdminPlugin',
+        path: '/admin/plugin',
+        component: () => import('#/views/admin/plugin/index.vue'),
       },
       {
         meta: {

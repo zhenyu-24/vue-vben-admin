@@ -1,0 +1,69 @@
+/* Match table tooltips to the shared Vben tooltip tokens. */
+.vxe-tooltip--wrapper:is(.theme--light, .theme--dark) .vxe-tooltip--body,
+.el-popper.app-text-tooltip,
+.tippy-box[data-state] {
+  color: hsl(var(--popover-foreground));
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%);
+}
+
+.vxe-tooltip--wrapper:is(.theme--light, .theme--dark) .vxe-tooltip--content,
+.el-popper.app-text-tooltip,
+.tippy-box[data-state] .tippy-content {
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.el-popper.app-text-tooltip .el-popper__arrow::before {
+  background: hsl(var(--popover));
+  border-color: hsl(var(--border));
+}
+
+.vxe-tooltip--wrapper:is(.theme--light, .theme--dark).placement--top
+  .vxe-tooltip--arrow {
+  border-top-color: hsl(var(--border));
+}
+
+.vxe-tooltip--wrapper:is(.theme--light, .theme--dark).placement--top
+  .vxe-tooltip--arrow::before {
+  border-top-color: hsl(var(--popover));
+}
+
+.vxe-tooltip--wrapper:is(.theme--light, .theme--dark).placement--bottom
+  .vxe-tooltip--arrow {
+  border-bottom-color: hsl(var(--border));
+}
+
+.vxe-tooltip--wrapper:is(.theme--light, .theme--dark).placement--bottom
+  .vxe-tooltip--arrow::before {
+  border-bottom-color: hsl(var(--popover));
+}
+
+.tippy-box[data-state] > .tippy-arrow {
+  color: hsl(var(--popover));
+}
+
+.tippy-box[data-state][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: hsl(var(--popover));
+}
+
+.tippy-box[data-state][data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: hsl(var(--popover));
+}
+
+.tippy-box[data-state][data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: hsl(var(--popover));
+}
+
+.tippy-box[data-state][data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: hsl(var(--popover));
+}

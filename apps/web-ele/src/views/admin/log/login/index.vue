@@ -4,8 +4,7 @@ import type { AdminGridApi } from '../../shared/useAdminGrid';
 import type { LoginLogResult } from '#/api';
 
 import { Page, VbenButton } from '@vben/common-ui';
-
-import { Delete } from '@element-plus/icons-vue';
+import { Trash2 } from '@vben/icons';
 
 import { deleteLoginLogApi, getLoginLogListApi } from '#/api';
 
@@ -35,12 +34,13 @@ const [Grid, gridApi] = useAdminGrid<LoginLogResult>({
     <Grid>
       <template #toolbar-actions>
         <VbenButton
+          class="gap-2"
           variant="destructive"
           :disabled="disabled"
           :loading="loading"
           @click="deleteSelected"
         >
-          <Delete class="size-5" />
+          <Trash2 v-if="!loading" class="size-4 shrink-0" aria-hidden="true" />
           删除日志
         </VbenButton>
       </template>
