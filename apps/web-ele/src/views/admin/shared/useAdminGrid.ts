@@ -51,12 +51,41 @@ export function useAdminGrid<T extends Record<string, any>>({
         ? { ...column, showOverflow: false }
         : column,
     );
-  const formOptions = () => ({
-    schema: schema(),
-    collapsed: true,
-    showCollapseButton: true,
-    submitButtonOptions: { content: $t('common.query') },
-  });
+  const formOptions = () => {
+    const querySchema = schema();
+    const columns = [
+      'grid-cols-1',
+      'gap-x-2',
+      'md:grid-cols-[minmax(0,296px)_minmax(220px,1fr)]',
+    ];
+    if (querySchema.length >= 2) {
+      columns.push(
+        'lg:grid-cols-[repeat(2,minmax(0,296px))_minmax(220px,1fr)]',
+      );
+    }
+    if (querySchema.length >= 3) {
+      columns.push(
+        'xl:grid-cols-[repeat(3,minmax(0,296px))_minmax(220px,1fr)]',
+      );
+    }
+    if (querySchema.length >= 4) {
+      columns.push(
+        '2xl:grid-cols-[repeat(4,minmax(0,296px))_minmax(220px,1fr)]',
+      );
+    }
+    return {
+      commonConfig: {
+        labelWidth: 72,
+        wrapperClass: 'w-full max-w-[200px]',
+      },
+      wrapperClass: columns.join(' '),
+      actionWrapperClass: 'flex-wrap gap-y-2 md:row-start-1',
+      schema: querySchema,
+      collapsed: true,
+      showCollapseButton: true,
+      submitButtonOptions: { content: $t('common.query') },
+    };
+  };
   const [Grid, gridApi] = useVbenVxeGrid<T>({
     ...options,
     formOptions: formOptions(),

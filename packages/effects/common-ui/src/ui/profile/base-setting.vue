@@ -22,9 +22,12 @@ const emit = defineEmits<{
   submit: [Recordable<any>];
 }>();
 
+const labelWidth = 100;
+
 const [Form, formApi] = useVbenForm(
   reactive({
     commonConfig: {
+      labelWidth,
       // 所有表单项
       componentProps: {
         class: 'w-full',
@@ -49,9 +52,14 @@ defineExpose({
 });
 </script>
 <template>
-  <div @keydown.enter.prevent="handleSubmit">
+  <div class="w-full max-w-[560px]" @keydown.enter.prevent="handleSubmit">
     <Form />
-    <VbenButton type="submit" class="mt-4" @click="handleSubmit">
+    <VbenButton
+      type="submit"
+      class="mt-4"
+      :style="{ marginLeft: `calc(${labelWidth}px + 0.5rem + 1px)` }"
+      @click="handleSubmit"
+    >
       {{ $t('profile.updateBasicProfile') }}
     </VbenButton>
   </div>
