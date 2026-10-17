@@ -108,7 +108,6 @@ async function handleAvatarChange(file: File) {
     'image/png',
     'image/gif',
     'image/webp',
-    'image/svg+xml',
   ];
   if (!allowedTypes.includes(file.type)) {
     ElMessage.error('仅支持 JPG/PNG/GIF/WEBP/SVG 格式');

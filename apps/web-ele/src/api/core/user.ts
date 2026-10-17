@@ -2,6 +2,8 @@ import type { PaginationResult, SysId } from '#/types/api';
 
 import { requestClient } from '#/api/request';
 
+import { uploadFileApi } from './files';
+
 export interface CurrentUserInfo {
   id: SysId;
   username: string;
@@ -68,16 +70,12 @@ export async function updateMyInfoApi(data: UpdateMyInfoParams) {
 }
 
 /**
- * 上传当前用户头像（POST /v1/user/me/avatar, multipart/form-data）
- * @param file 头像文件（jpg/jpeg/png/gif/webp/svg, ≤5MB）
+ * 分片上传当前用户头像
+ * @param file 头像文件（jpg/jpeg/png/gif/webp，大小上限由后端配置）
  * @returns 上传文件信息 { url, size, original_name, ... }
  */
 export async function uploadAvatarApi(file: File) {
-  const formData = new FormData();
-  formData.append('file', file);
-  return requestClient.post('/v1/user/me/avatar', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return uploadFileApi(file, { upload_type: 'avatar' });
 }
 
 /** 分页查询用户列表参数 */

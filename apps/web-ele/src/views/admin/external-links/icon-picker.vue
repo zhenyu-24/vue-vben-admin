@@ -48,8 +48,8 @@ function select(icon: string) {
 
 async function upload(file: UploadFile) {
   if (!file.raw || uploading.value) return;
-  if (!/\.(?:png|jpe?g|gif|webp|svg)$/i.test(file.name)) {
-    ElMessage.error('请选择 PNG、JPG、GIF、WebP 或 SVG 图片');
+  if (!/\.(?:png|jpe?g|gif|webp)$/i.test(file.name)) {
+    ElMessage.error('请选择 PNG、JPG、GIF 或 WebP 图片');
     return;
   }
   if (file.raw.size > 5 * 1024 * 1024) {
@@ -107,7 +107,7 @@ async function upload(file: UploadFile) {
       </div>
     </ElPopover>
     <ElUpload
-      accept=".png,.jpg,.jpeg,.gif,.webp,.svg"
+      accept=".png,.jpg,.jpeg,.gif,.webp"
       :auto-upload="false"
       :show-file-list="false"
       :disabled="disabled || uploading"

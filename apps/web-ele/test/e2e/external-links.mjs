@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -44,7 +45,8 @@ const embedded = record('Dify-1', 'link', nested.id, {
 });
 const tools = record('工具箱', 'group', null, { display_mode: 'buttons' });
 const toolGroup = record('开发工具', 'group', tools.id);
-const imagePath = '/static/upload/image/2026/10/17/icon_1792239952000.png';
+const imagePath =
+  '/static/upload/public/image/2026/10/17/icon_1792239952000.png';
 const image = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jh6kAAAAASUVORK5CYII=',
   'base64',
@@ -61,6 +63,8 @@ let records = [group, nested, embedded, tools, toolGroup, tool, external];
 let superuser = true;
 let unavailable = false;
 let uploadCount = 0;
+const uploads = new Map();
+const digest = (data) => createHash('sha256').update(data).digest('hex');
 const published = () =>
   records.filter((item) => {
     let node = item;
@@ -90,15 +94,29 @@ await context.route('http://localhost:8000/api/**', async (route) => {
   const path = new URL(request.url()).pathname.replace('/api', '');
   let data;
   let status = 200;
-  if (path === '/v1/file/upload') {
-    assert.equal(
-      new URL(request.url()).searchParams.get('upload_type'),
-      'image',
-    );
-    assert.match(request.headers()['content-type'], /multipart\/form-data/);
-    assert(
-      request.postDataBuffer().includes(Buffer.from('filename="icon.png"')),
-    );
+  if (path === '/v1/files/upload/precheck') {
+    const metadata = request.postDataJSON();
+    assert.equal(metadata.upload_type, 'image');
+    assert.equal(metadata.is_public, true);
+    const uploadId = digest(JSON.stringify(metadata));
+    uploads.set(uploadId, { metadata, parts: [] });
+    data = {
+      upload_id: uploadId,
+      chunk_size: 4194304,
+      total_chunks: 1,
+      uploaded_chunks: [],
+      file: null,
+    };
+  } else if (/^\/v1\/files\/upload\/\w+\/chunks\/0$/.test(path)) {
+    const upload = uploads.get(path.split('/')[4]);
+    const block = request.postDataBuffer();
+    assert.equal(digest(block), request.headers()['x-chunk-sha256']);
+    upload.parts.push(block);
+  } else if (/^\/v1\/files\/upload\/\w+\/merge$/.test(path)) {
+    const upload = uploads.get(path.split('/')[4]);
+    const content = Buffer.concat(upload.parts);
+    assert.equal(content.length, upload.metadata.size);
+    assert.equal(digest(content), upload.metadata.sha256);
     uploadCount++;
     data = { url: `http://localhost:8000${imagePath}` };
   } else if (path.startsWith('/v1/sys/external-links')) {
@@ -185,6 +203,170 @@ const row = (title) =>
 try {
   await go('/admin/external-links');
   await row('Dify-1').waitFor();
+  const fileRequests = [];
+  const fileRoute = async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    assert.equal(request.headers().authorization, 'Bearer ui-test');
+    if (url.pathname.endsWith('/precheck')) {
+      const { filename, size, sha256, content_type, ...options } =
+        request.postDataJSON();
+      assert.equal(filename, 'report.pdf');
+      assert.equal(size, 6);
+      assert.equal(sha256, digest('report'));
+      assert.equal(content_type, 'application/pdf');
+      fileRequests.push(options);
+      return route.fulfill({
+        json: {
+          code: 200,
+          data: {
+            upload_id: 'a'.repeat(64),
+            chunk_size: 1024,
+            total_chunks: 1,
+            uploaded_chunks: [],
+          },
+        },
+      });
+    }
+    if (request.method() === 'PUT') {
+      assert.equal(request.postData(), 'report');
+      assert.equal(request.headers()['x-chunk-sha256'], digest('report'));
+      return route.fulfill({ json: { code: 200, data: null } });
+    }
+    if (request.method() === 'GET') {
+      assert.equal(url.pathname, '/api/v1/files/download/9007199254741001');
+      fileRequests.push({});
+      return route.fulfill({
+        contentType: 'application/octet-stream',
+        body: 'downloaded file contents',
+      });
+    }
+    return route.fulfill({
+      json: {
+        code: 200,
+        data: {
+          file_id: '9007199254741001',
+          is_public: fileRequests.at(-1).is_public === true,
+          download_url: '/api/v1/files/download/9007199254741001',
+        },
+      },
+    });
+  };
+  await context.route('**/api/v1/files/**', fileRoute);
+  const downloaded = await page.evaluate(async () => {
+    const modulePath = '/src/api/core/files.ts';
+    const { uploadFileApi, downloadFileApi } = await import(
+      /* @vite-ignore */ modulePath
+    );
+    const file = new File(['report'], 'report.pdf', {
+      type: 'application/pdf',
+    });
+    const result = await uploadFileApi(file);
+    if (result.file_id !== '9007199254741001')
+      throw new Error('ID precision lost');
+    await uploadFileApi(file, { upload_type: 'document', is_public: true });
+    await uploadFileApi(file, { upload_type: 'resource', is_public: false });
+    await uploadFileApi(file, { upload_type: 'avatar' });
+    const blob = await downloadFileApi(result.file_id);
+    return blob.text();
+  });
+  assert.equal(downloaded, 'downloaded file contents');
+  assert.deepEqual(fileRequests, [
+    {},
+    { upload_type: 'document', is_public: true },
+    { upload_type: 'resource', is_public: false },
+    { upload_type: 'avatar' },
+    {},
+  ]);
+  await context.unroute('**/api/v1/files/**', fileRoute);
+  const transferSize = 4 * 1024 * 1024;
+  const downloadBody = Buffer.alloc(transferSize + 17, 42);
+  const ranges = [];
+  let interruptDownload = true;
+  const rangeRoute = async (route) => {
+    const request = route.request();
+    assert.equal(request.headers().authorization, 'Bearer ui-test');
+    const headers = {
+      'access-control-expose-headers':
+        'Content-Length, Content-Range, ETag, Accept-Ranges',
+      'accept-ranges': 'bytes',
+      'content-length': String(downloadBody.length),
+      etag: '"download-test"',
+    };
+    if (request.method() === 'HEAD') return route.fulfill({ headers });
+    const range = request.headers().range;
+    ranges.push(range);
+    assert.equal(request.headers()['if-range'], headers.etag);
+    const [, start, end] = /^bytes=(\d+)-(\d+)$/.exec(range).map(Number);
+    if (interruptDownload && start > 0)
+      return route.fulfill({ status: 503, body: 'interrupted' });
+    const body = downloadBody.subarray(start, end + 1);
+    await route.fulfill({
+      status: 206,
+      headers: {
+        ...headers,
+        'content-length': String(body.length),
+        'content-range': `bytes ${start}-${end}/${downloadBody.length}`,
+      },
+      body,
+    });
+  };
+  await context.route('**/api/v1/files/download/range-test', rangeRoute);
+  const interrupted = await page.evaluate(async () => {
+    const { downloadFileToDiskApi } = await import('/src/api/core/files.ts');
+    let data = new Blob([]);
+    let lastModified = 1;
+    window.transferDestination = {
+      getFile: async () => new File([data], 'download.pdf', { lastModified }),
+      createWritable: async () => {
+        let pending = data;
+        return {
+          truncate: async (size) => {
+            pending = pending.slice(0, size);
+          },
+          write: async ({ position, data: block }) => {
+            pending = new Blob([pending.slice(0, position), block]);
+          },
+          close: async () => {
+            data = pending;
+            lastModified++;
+          },
+        };
+      },
+    };
+    try {
+      await downloadFileToDiskApi('range-test', window.transferDestination);
+      throw new Error('Expected download interruption');
+    } catch (error) {
+      if (error.message === 'Expected download interruption') throw error;
+    }
+    return (await window.transferDestination.getFile()).size;
+  });
+  assert.equal(interrupted, transferSize);
+  assert.equal(ranges.length, 4);
+  interruptDownload = false;
+  const resumed = await page.evaluate(async () => {
+    const { downloadFileToDiskApi } = await import('/src/api/core/files.ts');
+    await downloadFileToDiskApi('range-test', window.transferDestination);
+    const file = await window.transferDestination.getFile();
+    return {
+      size: file.size,
+      correct: new Uint8Array(await file.arrayBuffer()).every(
+        (byte) => byte === 42,
+      ),
+      state: localStorage.getItem('file-download:range-test'),
+    };
+  });
+  assert.deepEqual(resumed, {
+    size: downloadBody.length,
+    correct: true,
+    state: null,
+  });
+  assert.equal(
+    ranges.at(-1),
+    `bytes=${transferSize}-${downloadBody.length - 1}`,
+  );
+  await context.unroute('**/api/v1/files/download/range-test', rangeRoute);
   assert.equal(await page.locator('.el-table__body tr').count(), 7);
   assert.equal(
     await row('Dify').locator('.admin-status-switch').innerText(),
@@ -252,7 +434,7 @@ try {
     buffer: Buffer.from('invalid'),
   });
   await page
-    .getByText('请选择 PNG、JPG、GIF、WebP 或 SVG 图片', { exact: true })
+    .getByText('请选择 PNG、JPG、GIF 或 WebP 图片', { exact: true })
     .waitFor();
   assert.equal(uploadCount, 0);
   await dialog.locator('input[type="file"]').setInputFiles({
@@ -478,6 +660,8 @@ try {
         result: 'passed',
         screenshots: output,
         checks: [
+          'file API visibility options, authenticated binary download and string IDs',
+          'disk download retries, committed partial ranges and ETag resume',
           'CRUD and live menu refresh',
           'nested sidebar menu and redirect',
           'backend menu mode and light theme',

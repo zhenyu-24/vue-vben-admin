@@ -2,6 +2,8 @@ import type { SysId } from '#/types/api';
 
 import { requestClient } from '#/api/request';
 
+import { uploadFileApi } from './files';
+
 export interface ExternalLinkInput {
   title: string;
   kind: 'group' | 'link';
@@ -45,22 +47,16 @@ export function deleteExternalLinkApi(id: SysId) {
 
 export async function uploadExternalLinkIconApi(file: File) {
   const extension = file.name.split('.').at(-1)?.toLowerCase();
-  const data = new FormData();
   // Keep the stored local image path within the existing icon column limit.
-  data.append(
-    'file',
+  const result = await uploadFileApi(
     new File([file], `icon.${extension}`, { type: file.type }),
-  );
-  const result = await requestClient.post<{ url: string }>(
-    '/v1/file/upload',
-    data,
-    {
-      params: { upload_type: 'image' },
-      headers: { 'Content-Type': 'multipart/form-data' },
-    },
+    { upload_type: 'image', is_public: true },
   );
   const path = new URL(result.url, window.location.origin).pathname;
-  if (!path.startsWith('/static/upload/') || path.length > 100) {
+  if (
+    !/^\/static\/upload\/(?:public\/)?image\//.test(path) ||
+    path.length > 100
+  ) {
     throw new Error('上传返回的图片地址无效');
   }
   return path;
