@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router';
 
 import { $t } from '#/locales';
+import { externalLinksAdminRoute } from '#/router/external-links';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -148,6 +149,7 @@ const routes: RouteRecordRaw[] = [
           },
         ],
       },
+      externalLinksAdminRoute,
       {
         meta: {
           icon: 'lucide:puzzle',
