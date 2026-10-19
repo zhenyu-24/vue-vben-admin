@@ -2,14 +2,82 @@
 import type { VbenFormSchema } from '@vben/common-ui';
 import type { Recordable } from '@vben/types';
 
-import { computed, h } from 'vue';
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { AuthenticationRegister, z } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 
+import { ElAlert, ElButton } from 'element-plus';
+
+import { getPasswordPolicyApi } from '#/api';
 import { useAuthStore } from '#/store';
 
 defineOptions({ name: 'Register' });
+
+const authStore = useAuthStore();
+const registerRef = ref<InstanceType<typeof AuthenticationRegister>>();
+const policy = ref<Awaited<ReturnType<typeof getPasswordPolicyApi>>>();
+const policyLoading = ref(false);
+const policyFailed = ref(false);
+let disposed = false;
+
+async function refreshPolicy() {
+  if (policyLoading.value || disposed) return false;
+  policyLoading.value = true;
+  policyFailed.value = false;
+  try {
+    const result = await getPasswordPolicyApi();
+    if (disposed) return false;
+    policy.value = result;
+    return true;
+  } catch {
+    if (!disposed) {
+      policy.value = undefined;
+      policyFailed.value = true;
+    }
+    return false;
+  } finally {
+    policyLoading.value = false;
+  }
+}
+
+function handleFocus() {
+  if (!authStore.registerLoading) void refreshPolicy();
+}
+
+onMounted(() => {
+  void refreshPolicy();
+  window.addEventListener('focus', handleFocus);
+});
+onBeforeUnmount(() => {
+  disposed = true;
+  window.removeEventListener('focus', handleFocus);
+});
+
+const passwordHint = computed(() => {
+  const current = policy.value;
+  if (!current) return '正在获取密码规则';
+  const requirements = [];
+  if (current.require_special_char) requirements.push('特殊字符（如 !@#$%）');
+  return `密码长度为 ${current.min_length}～${current.max_length} 个字符${requirements.length ? `，必须包含${requirements.join('、')}` : ''}`;
+});
+
+function passwordError(value: string) {
+  const current = policy.value;
+  if (!current) return '请先加载密码规则';
+  // Python len counts Unicode code points, as does Array.from.
+  const length = Array.from(value).length;
+  if (length < current.min_length)
+    return `密码长度不能少于 ${current.min_length} 个字符`;
+  if (length > current.max_length)
+    return `密码长度不能超过 ${current.max_length} 个字符`;
+  if (
+    current.require_special_char &&
+    !/[!@#$%^&*()_+\-=[\]{};:'",.<>?/\\|`~]/.test(value)
+  )
+    return '密码必须包含特殊字符（如：!@#$%）';
+  return undefined;
+}
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
@@ -32,10 +100,15 @@ const formSchema = computed((): VbenFormSchema[] => {
       label: $t('authentication.password'),
       renderComponentContent() {
         return {
-          strengthText: () => $t('authentication.passwordStrength'),
+          strengthText: () => passwordHint.value,
         };
       },
-      rules: z.string().min(1, { message: $t('authentication.passwordTip') }),
+      rules: z
+        .string({ required_error: $t('authentication.passwordTip') })
+        .superRefine((value, context) => {
+          const message = passwordError(value);
+          if (message) context.addIssue({ code: 'custom', message });
+        }),
     },
     {
       component: 'VbenInputPassword',
@@ -103,22 +176,39 @@ const formSchema = computed((): VbenFormSchema[] => {
   ];
 });
 
-const authStore = useAuthStore();
-
-function handleSubmit(value: Recordable<any>) {
-  authStore.register(value, () => {
-    // 注册成功后跳转到登录页
-    window.location.href = '/auth/login';
-  }).catch(() => {
-    // 错误已在拦截器中展示，此处静默处理防止 unhandled rejection
-  });
+async function handleSubmit(value: Recordable<any>) {
+  if (authStore.registerLoading || policyLoading.value) return;
+  if (!(await refreshPolicy())) return;
+  await nextTick();
+  const result = await registerRef.value?.getFormApi().validate();
+  if (!result?.valid) return;
+  try {
+    await authStore.register(value, () => {
+      window.location.href = '/auth/login';
+    });
+  } catch {
+    // Request errors are displayed by the interceptor.
+  }
 }
 </script>
 
 <template>
-  <AuthenticationRegister
-    :form-schema="formSchema"
-    :loading="authStore.registerLoading"
-    @submit="handleSubmit"
-  />
+  <div>
+    <ElAlert
+      v-if="policyFailed"
+      title="密码规则加载失败，请重试"
+      type="error"
+      :closable="false"
+      show-icon
+      class="mb-4"
+    >
+      <ElButton link type="primary" @click="refreshPolicy">重新加载</ElButton>
+    </ElAlert>
+    <AuthenticationRegister
+      ref="registerRef"
+      :form-schema="formSchema"
+      :loading="authStore.registerLoading || policyLoading"
+      @submit="handleSubmit"
+    />
+  </div>
 </template>

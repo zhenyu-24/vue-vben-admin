@@ -85,8 +85,8 @@ export interface GetUsersParams {
   username?: string;
   phone?: string;
   status?: number;
-  sortBy?: string;
-  sortOrder?: string;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
 }
 
 /** 分页用户列表（GET /v1/sys/users） */
@@ -99,7 +99,7 @@ export async function getUsersApi(params?: GetUsersParams) {
 // ------ 用户管理 CRUD ------
 
 export interface SysUserResult {
-  id: number;
+  id: SysId;
   uuid: string;
   dept_id?: null | SysId;
   username: string;
@@ -141,17 +141,17 @@ export async function createSysUserApi(data: SysAddUserParams) {
 }
 
 /** 更新用户 */
-export async function updateSysUserApi(pk: number, data: SysUpdateUserParams) {
+export async function updateSysUserApi(pk: SysId, data: SysUpdateUserParams) {
   return requestClient.put(`/v1/sys/users/${pk}`, data);
 }
 
 /** 删除用户 */
-export async function deleteSysUserApi(pk: number) {
+export async function deleteSysUserApi(pk: SysId) {
   return requestClient.delete(`/v1/sys/users/${pk}`);
 }
 
 /** 切换用户权限状态（status/superuser/staff/multi_login） */
-export async function updateSysUserPermissionApi(pk: number, type: string) {
+export async function updateSysUserPermissionApi(pk: SysId, type: string) {
   return requestClient.put(`/v1/sys/users/${pk}/permissions`, undefined, {
     params: { type },
   });
@@ -159,7 +159,7 @@ export async function updateSysUserPermissionApi(pk: number, type: string) {
 
 /** 重置用户密码 */
 export async function resetSysUserPasswordApi(
-  pk: number,
+  pk: SysId,
   data: SysResetPasswordParams,
 ) {
   return requestClient.put(`/v1/sys/users/${pk}/password`, data);

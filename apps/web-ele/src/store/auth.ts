@@ -2,7 +2,7 @@ import type { Recordable, UserInfo } from '@vben/types';
 
 import type { AuthApi, CurrentUserInfo } from '#/api';
 
-import { ref } from 'vue';
+import { onScopeDispose, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
@@ -28,6 +28,29 @@ export const useAuthStore = defineStore('auth', () => {
 
   const loginLoading = ref(false);
   const registerLoading = ref(false);
+  let sessionTimer: ReturnType<typeof setInterval> | undefined;
+  let checkingSession = false;
+  watch(
+    () => accessStore.accessToken,
+    (token) => {
+      clearInterval(sessionTimer);
+      sessionTimer = undefined;
+      if (!token) return;
+      sessionTimer = setInterval(async () => {
+        if (checkingSession) return;
+        checkingSession = true;
+        try {
+          await getUserInfoApi();
+        } catch {
+          // Authentication failures are handled by the shared response interceptor.
+        } finally {
+          checkingSession = false;
+        }
+      }, 60_000);
+    },
+    { immediate: true },
+  );
+  onScopeDispose(() => clearInterval(sessionTimer));
 
   /**
    * 将 fba 后端用户信息映射为 Vben Admin 的 UserInfo 格式

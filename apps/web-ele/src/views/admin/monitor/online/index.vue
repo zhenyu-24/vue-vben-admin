@@ -24,9 +24,21 @@ const [Grid, gridApi] = useAdminGrid<OnlineMonitorResult>({
     virtualYConfig: { enabled: true, gt: 0 },
     pagerConfig: { pageSize: 20, pageSizes: [10, 20, 30, 50, 100, 200] },
   },
-  query: async ({ page }, values: MonitorOnlineParams) => {
+  query: async ({ page, sort }, values: MonitorOnlineParams) => {
     const sessions = await getOnlineMonitorApi(values);
-    onlineCount.value = sessions.length;
+    onlineCount.value = sessions.filter(
+      (session) => session.status === 1,
+    ).length;
+    if (sort?.order)
+      sessions.sort((a, b) => {
+        const field = sort.field as keyof OnlineMonitorResult;
+        const compared = String(a[field] ?? '').localeCompare(
+          String(b[field] ?? ''),
+          'zh-CN',
+          { numeric: true },
+        );
+        return sort.order === 'desc' ? -compared : compared;
+      });
     const start = (page.currentPage - 1) * page.pageSize;
     return {
       items: sessions.slice(start, start + page.pageSize),

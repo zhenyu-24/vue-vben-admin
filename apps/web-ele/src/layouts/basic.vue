@@ -96,7 +96,7 @@ async function fetchNotifications() {
 }
 
 function handleNoticeClear() {
-  const ids = notifications.value.map((n) => n.id);
+  const ids = notifications.value.map((n) => String(n.id));
   if (ids.length > 0) {
     clearUserNoticesApi(ids);
   }
@@ -104,7 +104,7 @@ function handleNoticeClear() {
 }
 
 async function markRead(id: number | string) {
-  await markNoticeReadApi(id);
+  await markNoticeReadApi(String(id));
   const item = notifications.value.find((n) => n.id === id);
   if (item) {
     item.isRead = true;
@@ -112,12 +112,12 @@ async function markRead(id: number | string) {
 }
 
 function remove(id: number | string) {
-  deleteUserNoticeApi(id);
+  deleteUserNoticeApi(String(id));
   notifications.value = notifications.value.filter((n) => n.id !== id);
 }
 
 function handleMakeAll() {
-  const ids = notifications.value.map((n) => n.id);
+  const ids = notifications.value.map((n) => String(n.id));
   if (ids.length > 0) {
     markAllNoticesReadApi(ids);
   }

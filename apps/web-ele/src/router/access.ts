@@ -21,6 +21,7 @@ import {
   createExternalPageRoutes,
   externalLinksAdminRoute,
 } from './external-links';
+import { fileResourcesRoute } from './file-resources';
 
 const forbiddenComponent = () => import('#/views/_core/fallback/forbidden.vue');
 
@@ -39,7 +40,11 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
     if (admin) {
       const children = (admin.children || [])
         .filter(
-          (route) => route.path !== manager.path && route.name !== manager.name,
+          (route) =>
+            route.path !== manager.path &&
+            route.name !== manager.name &&
+            route.path !== fileResourcesRoute.path &&
+            route.name !== fileResourcesRoute.name,
         )
         .sort((a, b) => (a.meta?.order ?? 999) - (b.meta?.order ?? 999));
       const pluginIndex = children.findIndex(
@@ -50,6 +55,10 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
         pluginIndex < 0 ? children.length : pluginIndex,
         0,
         manager,
+        {
+          ...fileResourcesRoute,
+          component: '/admin/files/index',
+        } as RouteRecordStringComponent,
       );
       admin.children = children.map((route, order) => ({
         ...route,
@@ -71,7 +80,13 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
           order: 900,
           superuserOnly: true,
         },
-        children: [manager],
+        children: [
+          manager,
+          {
+            ...fileResourcesRoute,
+            component: '/admin/files/index',
+          } as RouteRecordStringComponent,
+        ],
       });
     }
     return routes;

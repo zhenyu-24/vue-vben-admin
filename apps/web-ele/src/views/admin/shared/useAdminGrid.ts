@@ -28,13 +28,20 @@ interface AdminGridOptions<T> {
 
 interface QueryPage {
   page: { currentPage: number; pageSize: number };
+  sort?: { field: string; order: string };
 }
 
 export function pagedQuery<P extends { page?: number; size?: number }, R>(
   request: (params: P) => Promise<R>,
 ) {
-  return ({ page }: QueryPage, values: P) =>
-    request({ ...values, page: page.currentPage, size: page.pageSize });
+  return ({ page, sort }: QueryPage, values: P) =>
+    request({
+      ...values,
+      page: page.currentPage,
+      size: page.pageSize,
+      sort_by: sort?.order ? sort.field : undefined,
+      sort_order: sort?.order || undefined,
+    });
 }
 
 export function useAdminGrid<T extends Record<string, any>>({
@@ -49,7 +56,19 @@ export function useAdminGrid<T extends Record<string, any>>({
     columns()?.map((column) =>
       column.field === 'operation'
         ? { ...column, showOverflow: false }
-        : column,
+        : {
+            ...column,
+            sortable:
+              column.sortable ??
+              Boolean(
+                column.field &&
+                !column.type &&
+                !column.treeNode &&
+                !['avatar', 'dept', 'file.exists', 'roles'].includes(
+                  column.field,
+                ),
+              ),
+          },
     );
   const formOptions = () => {
     const querySchema = schema();
@@ -82,6 +101,7 @@ export function useAdminGrid<T extends Record<string, any>>({
       actionWrapperClass: 'flex-wrap gap-y-2 md:row-start-1',
       schema: querySchema,
       collapsed: true,
+      submitOnEnter: true,
       showCollapseButton: true,
       submitButtonOptions: { content: $t('common.query') },
     };
@@ -94,6 +114,10 @@ export function useAdminGrid<T extends Record<string, any>>({
       keepSource: true,
       exportConfig: {},
       ...gridOptions,
+      sortConfig: {
+        remote: gridOptions?.pagerConfig?.enabled !== false,
+        ...gridOptions?.sortConfig,
+      },
       rowConfig: { keyField: 'id', ...gridOptions?.rowConfig },
       columns: buildColumns(),
       toolbarConfig: {
@@ -106,6 +130,7 @@ export function useAdminGrid<T extends Record<string, any>>({
       },
       proxyConfig: {
         ...gridOptions?.proxyConfig,
+        sort: true,
         ajax: {
           ...gridOptions?.proxyConfig?.ajax,
           query: async (...args: Parameters<GridQuery<T>>) => {

@@ -199,7 +199,7 @@ const go = async (path) => {
     .catch(() => {});
 };
 const row = (title) =>
-  page.locator('.el-table__body tr').filter({ hasText: title }).first();
+  page.locator('.vxe-table--main-wrapper .vxe-body--row').filter({ hasText: title }).first();
 try {
   await go('/admin/external-links');
   await row('Dify-1').waitFor();
@@ -367,7 +367,7 @@ try {
     `bytes=${transferSize}-${downloadBody.length - 1}`,
   );
   await context.unroute('**/api/v1/files/download/range-test', rangeRoute);
-  assert.equal(await page.locator('.el-table__body tr').count(), 7);
+  assert.equal(await page.locator('.vxe-table--main-wrapper .vxe-body--row').count(), 7);
   assert.equal(
     await row('Dify').locator('.admin-status-switch').innerText(),
     '启用',
@@ -377,12 +377,13 @@ try {
     .locator('aside [role="menuitem"]')
     .allTextContents();
   let managerIndex = menuNames.findIndex((name) => name.trim() === '外部链接');
-  assert.equal(menuNames[managerIndex + 1]?.trim(), '插件管理');
+  assert.equal(menuNames[managerIndex + 1]?.trim(), '文件资源中心');
   assert.equal(
     await page.locator('aside [data-icon="lucide:folder"]').count(),
     0,
   );
-  await page.getByRole('textbox', { name: '搜索名称或地址' }).fill('Dify-1');
+  await page.getByPlaceholder('搜索名称或地址').fill('Dify-1');
+  await page.getByRole('button', { name: '查询', exact: true }).click();
   await row('Dify-1').waitFor();
   assert.equal(
     await row('Dify')
@@ -390,8 +391,8 @@ try {
       .isDisabled(),
     true,
   );
-  await page.getByRole('textbox', { name: '搜索名称或地址' }).clear();
-  await page.getByRole('button', { name: '新增', exact: true }).click();
+  await page.getByRole('button', { name: '重置', exact: true }).click();
+  await page.getByRole('button', { name: '新增外部链接', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog
     .getByRole('textbox', { name: '名称', exact: true })
@@ -549,7 +550,7 @@ try {
   await go('/admin/external-links');
   await row('Dify').locator('.el-switch').click();
   await page.waitForFunction(() => {
-    const control = [...document.querySelectorAll('.el-table__body tr')]
+    const control = [...document.querySelectorAll('.vxe-body--row')]
       .find(
         (item) =>
           item.querySelector('.name-cell')?.textContent.trim() === 'Dify',
@@ -585,7 +586,7 @@ try {
     path: join(output, 'manager-mobile.png'),
     fullPage: true,
   });
-  await page.getByRole('button', { name: '新增', exact: true }).click();
+  await page.getByRole('button', { name: '新增外部链接', exact: true }).click();
   await dialog.waitFor();
   await dialog.getByRole('textbox', { name: '名称', exact: true }).waitFor();
   await dialog.getByRole('button', { name: '选择图标', exact: true }).click();
@@ -634,7 +635,7 @@ try {
   await page.locator('aside').getByText('插件管理', { exact: true }).waitFor();
   menuNames = await page.locator('aside [role="menuitem"]').allTextContents();
   managerIndex = menuNames.findIndex((name) => name.trim() === '外部链接');
-  assert.equal(menuNames[managerIndex + 1]?.trim(), '插件管理');
+  assert.equal(menuNames[managerIndex + 1]?.trim(), '文件资源中心');
   await page.screenshot({
     path: join(output, 'manager-backend-light.png'),
     fullPage: true,

@@ -109,8 +109,8 @@ const [Drawer, drawerApi] = useVbenDrawer({
     try {
       if (menusReady.value && tree.value) {
         const checked = mergeCheckedIds(
-          tree.value.getCheckedKeys(),
-          independent.value ? [] : tree.value.getHalfCheckedKeys(),
+          tree.value.getCheckedKeys().map(String),
+          independent.value ? [] : tree.value.getHalfCheckedKeys().map(String),
         );
         if (!sameIds(checked, initialMenus)) {
           await updateSysRoleMenuApi(role.value.id, checked);

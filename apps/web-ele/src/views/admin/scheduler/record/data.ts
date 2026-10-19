@@ -37,6 +37,7 @@ export function useColumns(
     },
     {
       field: 'result',
+      sortable: false,
       title: '执行结果',
       minWidth: 180,
       formatter: ({ cellValue }) => displayResult(cellValue),

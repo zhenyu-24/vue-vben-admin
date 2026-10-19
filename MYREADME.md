@@ -5,23 +5,61 @@
 # 进入项目目录
 cd vue-vben-admin
 
-# 使用项目指定的pnpm版本进行依赖安装
+# 启用 Corepack
 npm i -g corepack
 
+# 使用项目指定的 pnpm 版本
+corepack enable
+corepack prepare pnpm@11.7.0 --activate
+
 # 安装依赖
-pnpm install
+pnpm install --frozen-lockfile
 ```
 
 ## 运行项目
 ```
-pnpm run dev:antd
+# 当前项目默认联调应用：Element Plus
 pnpm run dev:ele
+
+# 其他工作区应用
+pnpm run dev:antd
 pnpm run dev:play
 ```
 
+`web-ele` 默认访问地址为 `http://localhost:5777`。开发环境接口地址在 `apps/web-ele/.env.development` 中配置，当前默认值为：
+
+```dotenv
+VITE_GLOB_API_URL=http://localhost:8000/api
+```
+
+后端使用 `fastapi-architecture` 项目根目录的简化 Docker Compose 部署时，保持上述地址即可。若后端修改了 `SERVER_PORT`，同步修改 `VITE_GLOB_API_URL`，然后重启 Vite 开发服务。
+
+## 构建与预览
+
+```bash
+# 构建 Element Plus 应用
+pnpm run build:ele
+
+# 构建 Ant Design Vue 应用
+pnpm run build:antd
+
+# 预览单个应用的生产构建
+pnpm --filter @vben/web-ele run preview
+```
+
+生产环境变量位于 `apps/web-ele/.env.production`。生产部署前确认 `VITE_GLOB_API_URL` 指向实际后端地址，并保留 `/api` 后缀，例如：
+
+```dotenv
+VITE_GLOB_API_URL=http://localhost:8000/api
+VITE_BASE=/
+VITE_ROUTER_HISTORY=hash
+```
+
+`VITE_GLOB_API_URL` 会在构建时写入前端资源，修改后必须重新构建，不能只重启静态文件服务器。
+
 # @vben 项目介绍
 
-基于 Vue Vben Admin v5 的 Ant Design Vue 版前端应用。
+基于 Vue Vben Admin v5 的多应用前端 Monorepo。本项目当前主要使用 `apps/web-ele`，它基于 Vue 3、TypeScript 和 Element Plus；仓库同时保留 Ant Design Vue、Naive UI、TDesign、Playground 等应用。
 
 ---
 
@@ -33,7 +71,7 @@ pnpm run dev:play
 ├── apps # 项目应用目录
 │   ├── backend-mock # 后端模拟服务应用
 │   ├── web-antd # 基于 Ant Design Vue 的前端应用
-│   ├── web-ele # 基于 Element Plus 的前端应用
+│   ├── web-ele # 当前主要使用的 Element Plus 前端应用
 ├── cspell.json # CSpell 配置文件
 ├── docs # 项目文档目录
 ├── eslint.config.mjs # ESLint 配置文件
@@ -100,6 +138,40 @@ pnpm run dev:play
 ### 根目录文件
 
 ```
+
+### 当前联调相关文件
+
+| 文件 | 作用 |
+|---|---|
+| `apps/web-ele/.env` | 应用标题、命名空间、持久化加密密钥等公共变量 |
+| `apps/web-ele/.env.development` | 开发端口 `5777`、后端 API 地址、Mock 开关 |
+| `apps/web-ele/.env.production` | 生产构建的 API 地址、路由模式、压缩和 PWA 配置 |
+| `apps/web-ele/src/api/` | 业务 API 请求模块 |
+| `apps/web-ele/src/router/` | 路由和权限守卫 |
+| `apps/web-ele/src/store/` | Pinia 状态管理 |
+
+### 与 FastAPI 后端联调
+
+开发时启动顺序建议如下：
+
+```powershell
+# 终端一：启动后端
+cd ..\fastapi-architecture
+docker compose -f docker-simply-compose.yml up -d --build
+
+# 终端二：启动前端
+cd ..\vue-vben-admin
+pnpm run dev:ele
+```
+
+打开 `http://localhost:5777`，接口请求应发送到 `http://localhost:8000/api`。后端健康检查地址为 `http://localhost:8000/health`，它不带 `/api` 前缀。
+
+如果前端页面能打开但接口请求失败，按以下顺序检查：
+
+1. `docker compose -f docker-simply-compose.yml ps` 中 `fba_server` 是否为 `healthy`。
+2. `curl.exe -fsS http://127.0.0.1:8000/health` 是否返回 `{"code":200,"msg":"请求成功","data":null}`。
+3. `apps/web-ele/.env.development` 的 `VITE_GLOB_API_URL` 是否与后端 `SERVER_PORT` 一致。
+4. 修改环境变量后是否重启了 Vite 开发服务。
 apps/web-ele/
 ├── .env                  # 公共环境变量（应用标题、命名空间等）
 ├── .env.development      # 开发环境变量（API 地址、mock 开关等）
@@ -291,6 +363,54 @@ import { SvgTestIcon } from '@vben/icons';
   <SvgTestIcon class="size-5" />
 </template>
 ```
+
+### 注册密码策略
+
+注册页从后端 `GET /api/v1/auth/password-policy` 获取当前密码要求，动态显示长度范围和特殊字符要求，并使用相同规则校验密码。最小长度、最大长度、特殊字符要求来自后端当前生效的用户安全配置，不额外强制包含数字或英文字母。
+
+进入注册页、窗口重新获得焦点和提交注册前都会重新读取规则。提交前规则改变时，页面更新提示并重新校验；加载失败会显示重试入口，阻止使用未知规则提交。后端注册接口同时执行复杂度校验。
+
+浏览器回归脚本：`node apps/web-ele/test/e2e/registration-policy.mjs`，默认访问 `http://localhost:5777`，可用 `TEST_BASE_URL` 指定地址。脚本使用模拟接口，不会创建真实账户。
+
+### 文件资源中心
+
+系统管理 → 文件资源中心，地址 `/admin/files`，页面位于 `apps/web-ele/src/views/admin/files/index.vue`。
+沿用现有系统管理权限，仅超级管理员可见，前端和后端菜单模式均注册入口，后台另行验证管理权限。
+
+- 与用户管理、部门管理复用查询表单、VXE 表格和工具栏；外部链接页面采用相同布局。
+- 支持文件名、类型、公开/私有和上传者用户名筛选、分页及刷新。
+- 按现有存储目录显示文件夹和文件，支持进入目录、上一级和面包屑导航；填写筛选条件后跨全部目录查询，并显示每个文件所在路径。
+- 显示文件详情、上传者用户名、存储路径、大小、上传时间、文件缺失和头像使用状态。
+- 支持替换文件：保留原文件 ID、名称、访问地址、可见性及上传者；要求相同扩展名，并由后端重新校验内容及大小。
+- 上传调用原有分片上传接口，支持进度、暂停和重新选择同一文件续传。
+- 管理下载使用 `/api/v1/files/manage/{file_id}/download`，支持其他用户私有文件及大文件按块写盘。
+- 删除需确认，会永久移除文件和数据库记录；正在使用的头像禁用删除，缺失文件可清理记录。
+- 支持勾选单个或多个文件批量删除，部分失败时展示结果；可切换公开/私有可见性，访问路径随之改变。
+- 上传使用统一选择文件按钮，并显示当前选择的文件名。
+
+文件列表管理已入库的未软删除记录，无记录磁盘文件不在此页面列出。
+文件夹由这些记录的存储路径生成，不展示空目录。上传选择“资源”类型后，可选择已有资源目录或输入新相对目录；
+公开与私有资源分别加载可选目录。最终路径为 `resource/{相对目录}/YYYY/MM/DD`，公开资源增加 `public/` 前缀。
+替换先通过现有分片接口上传私有来源文件，成功后来源记录被合并移除；替换失败时已上传文件保留，可在资源中心管理。
+普通业务引用没有统一登记，永久删除前需核实引用。
+浏览器不支持 File System Access API 时，下载回退为 Blob，最大 100 MiB。
+
+回归：`node apps/web-ele/test/e2e/file-resources.mjs`（本机 Chrome；可用 `TEST_BASE_URL` 指定前端）。
+脚本拦截并模拟 API，验证权限、列表筛选、详情、下载、删除、上传及移动端，不删除真实文件。
+
+### 查询、排序与在线会话
+
+管理页面复用 `useAdminGrid`：输入框按回车提交查询，普通属性及时间列支持排序。
+分页列表通过 `sort_by`、`sort_order` 在后端分页前排序；操作、头像、角色集合及计算展示列不提供排序。
+在线会话在前端对完整结果排序后分页，外部链接树使用本地排序。
+
+在线列表仅显示活跃会话，状态 `1` 为在线，不展示未连接会话。
+后端根据 Socket 连接或最近 180 秒的已认证请求判断在线，页面每 60 秒检查一次登录会话。
+强制下线立即撤销对应会话的访问及刷新令牌；被下线页面下次请求或会话检查时响应。
+关闭页面后活跃标记最多保留 180 秒；同一浏览器重新登录会替换旧会话，其他设备会话保留。
+登录请求启用凭据以保存刷新 Cookie，退出请求携带访问令牌以撤销会话。
+所有业务 ID 统一使用字符串类型 `SysId`，接口中的主键、外键和 ID 数组均返回字符串，
+避免雪花 ID 在浏览器中丢失精度；分页数量、状态和文件大小仍为数字。
 
 ### Tailwind CSS 图标
 

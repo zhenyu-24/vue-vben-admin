@@ -1,4 +1,4 @@
-export type SysId = number | string;
+export type SysId = string;
 
 /** 分页返回结果包装 */
 export interface PaginationResult<T> {

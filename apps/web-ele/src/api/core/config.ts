@@ -1,9 +1,11 @@
 import type { Recordable } from '@vben/types';
 
+import type { SysId } from '#/types/api';
+
 import { requestClient } from '#/api/request';
 
 export interface ConfigResult {
-  id: number;
+  id: SysId;
   name: string;
   type?: string;
   key: string;
@@ -15,7 +17,7 @@ export interface ConfigResult {
 }
 
 export interface UpdateConfigParam {
-  id: number;
+  id: SysId;
   name: string;
   type?: string;
   key: string;

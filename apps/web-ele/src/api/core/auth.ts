@@ -1,6 +1,14 @@
+import { useAccessStore } from '@vben/stores';
+
 import { baseRequestClient, requestClient } from '#/api/request';
 
 export namespace AuthApi {
+  export interface PasswordPolicy {
+    min_length: number;
+    max_length: number;
+    require_special_char: boolean;
+  }
+
   export interface CaptchaResult {
     is_enabled: boolean;
     expire_seconds: number;
@@ -39,11 +47,17 @@ export async function getLoginCaptchaApi() {
   return requestClient.get<AuthApi.CaptchaResult>('/v1/auth/captcha');
 }
 
+export async function getPasswordPolicyApi() {
+  return requestClient.get<AuthApi.PasswordPolicy>('/v1/auth/password-policy');
+}
+
 /**
  * 登录
  */
 export async function loginApi(data: AuthApi.LoginParams) {
-  return requestClient.post<AuthApi.LoginResult>('/v1/auth/login', data);
+  return requestClient.post<AuthApi.LoginResult>('/v1/auth/login', data, {
+    withCredentials: true,
+  });
 }
 
 /**
@@ -68,6 +82,7 @@ export async function refreshTokenApi() {
 export async function logoutApi() {
   return baseRequestClient.post('/v1/auth/logout', null, {
     withCredentials: true,
+    headers: { Authorization: `Bearer ${useAccessStore().accessToken || ''}` },
   });
 }
 

@@ -8,30 +8,24 @@ import type {
 } from '#/api/core/external-links';
 import type { SysId } from '#/types/api';
 
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { Page } from '@vben/common-ui';
+import { Page, VbenButton, VbenIconButton } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
 
-import { useMediaQuery } from '@vueuse/core';
 import {
   ElAlert,
   ElButton,
   ElDialog,
-  ElEmpty,
   ElForm,
   ElFormItem,
   ElInput,
   ElInputNumber,
   ElMessage,
   ElMessageBox,
-  ElOption,
   ElRadioButton,
   ElRadioGroup,
-  ElSelect,
-  ElTable,
-  ElTableColumn,
   ElTag,
   ElTreeSelect,
 } from 'element-plus';
@@ -50,14 +44,12 @@ import {
 import ExternalLinkIcon from '#/views/external-pages/icon.vue';
 
 import StatusSwitch from '../shared/status-switch.vue';
+import { useAdminGrid } from '../shared/useAdminGrid';
 import IconPicker from './icon-picker.vue';
 
 defineOptions({ name: 'AdminExternalLinks' });
-const LinkTableColumn = ElTableColumn<ExternalLinkNode>;
 const router = useRouter();
-const wideScreen = useMediaQuery('(min-width: 768px)');
 const rows = ref<ExternalLinkRecord[]>([]);
-const loading = ref(false);
 const failed = ref(false);
 const query = ref('');
 const status = ref<'' | 'disabled' | 'enabled'>('');
@@ -133,14 +125,12 @@ const rules: FormRules<ExternalLinkInput> = {
 };
 
 async function load() {
-  loading.value = true;
   failed.value = false;
   try {
     rows.value = await getExternalLinksApi(true);
   } catch {
+    rows.value = [];
     failed.value = true;
-  } finally {
-    loading.value = false;
   }
 }
 
@@ -155,7 +145,7 @@ async function edit(row?: ExternalLinkRecord, parent?: SysId) {
 }
 
 async function publish() {
-  await load();
+  await gridApi.query();
   try {
     await refreshExternalPageRoutes(router);
   } catch {
@@ -209,139 +199,159 @@ async function toggle(row: ExternalLinkRecord) {
   }
 }
 
-onMounted(load);
+const [Grid, gridApi] = useAdminGrid<ExternalLinkNode>({
+  columns: () => [
+    {
+      field: 'title',
+      title: '名称',
+      minWidth: 230,
+      treeNode: true,
+      align: 'left',
+      slots: { default: 'name' },
+    },
+    { field: 'kind', title: '类型', width: 90, slots: { default: 'kind' } },
+    {
+      field: 'display_mode',
+      title: '展示 / 打开方式',
+      width: 155,
+      slots: { default: 'mode' },
+    },
+    { field: 'url', title: '页面地址', minWidth: 230 },
+    { field: 'sort', title: '排序', width: 80 },
+    {
+      field: 'enabled',
+      title: '状态',
+      width: 90,
+      slots: { default: 'status' },
+    },
+    {
+      field: 'operation',
+      title: '操作',
+      width: 210,
+      slots: { default: 'operation' },
+    },
+  ],
+  schema: () => [
+    {
+      component: 'Input',
+      fieldName: 'search',
+      label: '名称 / 地址',
+      componentProps: { placeholder: '搜索名称或地址', clearable: true },
+    },
+    {
+      component: 'Select',
+      fieldName: 'status',
+      label: '状态',
+      componentProps: {
+        clearable: true,
+        options: [
+          { label: '启用', value: 'enabled' },
+          { label: '禁用', value: 'disabled' },
+        ],
+      },
+    },
+  ],
+  query: async (_, values) => {
+    query.value = values.search || '';
+    status.value = values.status || '';
+    await load();
+    return { items: filtered.value };
+  },
+  gridOptions: {
+    sortConfig: { remote: false },
+    pagerConfig: { enabled: false },
+    treeConfig: { rowField: 'id', childrenField: 'children', expandAll: true },
+  },
+});
 </script>
 
 <template>
-  <Page title="外部链接">
-    <div class="manager">
-      <div class="toolbar">
-        <ElInput
-          v-model="query"
-          placeholder="搜索名称或地址"
-          clearable
-          aria-label="搜索名称或地址"
-          class="search"
+  <Page auto-content-height>
+    <Grid>
+      <template #toolbar-actions>
+        <VbenButton class="gap-2" @click="edit()">
+          <IconifyIcon icon="lucide:plus" class="size-4" />新增外部链接
+        </VbenButton>
+      </template>
+      <template #toolbar-tools>
+        <VbenIconButton
+          tooltip="展开全部"
+          aria-label="展开全部"
+          @click="gridApi.grid.setAllTreeExpand(true)"
+        >
+          <IconifyIcon icon="lucide:chevrons-down" class="size-4" />
+        </VbenIconButton>
+        <VbenIconButton
+          tooltip="折叠全部"
+          aria-label="折叠全部"
+          @click="gridApi.grid.setAllTreeExpand(false)"
+        >
+          <IconifyIcon icon="lucide:chevrons-up" class="size-4" />
+        </VbenIconButton>
+      </template>
+      <template #name="{ row }">
+        <span class="name-cell"><ExternalLinkIcon
+          :icon="row.icon"
+          class="size-4 shrink-0 object-contain"
+        />{{ row.title }}</span>
+      </template>
+      <template #kind="{ row }">
+        <ElTag :type="row.kind === 'group' ? 'info' : 'primary'">
+          {{
+            row.kind === 'group' ? '分类' : '链接'
+          }}
+        </ElTag>
+      </template>
+      <template #mode="{ row }">
+        {{
+          row.kind === 'group'
+            ? row.display_mode === 'buttons'
+              ? '分类按钮'
+              : '多级菜单'
+            : row.open_mode === 'iframe'
+              ? '内嵌'
+              : '新窗口'
+        }}
+      </template>
+      <template #status="{ row }">
+        <StatusSwitch
+          :model-value="row.enabled"
+          :loading="toggling.has(String(row.id))"
+          :aria-label="`${row.title}启用状态`"
+          @change="toggle(row)"
         />
-        <ElSelect
-          v-model="status"
-          placeholder="全部状态"
-          aria-label="启用状态"
-          class="status-filter"
+      </template>
+      <template #operation="{ row }">
+        <ElButton link type="primary" @click="edit(row)">编辑</ElButton>
+        <ElButton
+          v-if="row.kind === 'group'"
+          link
+          type="primary"
+          @click="edit(undefined, row.id)"
         >
-          <ElOption label="全部状态" value="" />
-          <ElOption label="启用" value="enabled" />
-          <ElOption label="禁用" value="disabled" />
-        </ElSelect>
-        <div class="toolbar-actions">
-          <ElButton
-            :loading="loading"
-            aria-label="刷新配置"
-            title="刷新配置"
-            @click="load"
-          >
-            <IconifyIcon icon="lucide:refresh-cw" />
-          </ElButton>
-          <ElButton type="primary" @click="edit()">
-            <IconifyIcon icon="lucide:plus" class="mr-2" />新增
-          </ElButton>
-        </div>
-      </div>
-      <ElAlert
-        v-if="failed"
-        title="外部链接配置加载失败，请确认插件已启用后重试"
-        type="error"
-        :closable="false"
-        show-icon
-      />
-      <div class="table-scroll">
-        <ElTable
-          v-loading="loading"
-          :data="filtered"
-          row-key="id"
-          default-expand-all
-          :tree-props="{ children: 'children' }"
+          添加子项
+        </ElButton>
+        <ElButton
+          link
+          type="danger"
+          :disabled="
+            rows.some((item) => String(item.parent_id) === String(row.id))
+          "
+          @click="remove(row)"
         >
-          <LinkTableColumn prop="title" label="名称" min-width="230">
-            <template #default="{ row }">
-              <span class="name-cell"><ExternalLinkIcon
-                  :icon="row.icon"
-                  class="size-4 shrink-0 object-contain"
-                />{{ row.title }}</span>
-            </template>
-          </LinkTableColumn>
-          <LinkTableColumn label="类型" width="90">
-            <template #default="{ row }">
-              <ElTag :type="row.kind === 'group' ? 'info' : 'primary'">
-                {{ row.kind === 'group' ? '分类' : '链接' }}
-              </ElTag>
-            </template>
-          </LinkTableColumn>
-          <LinkTableColumn label="展示 / 打开方式" width="155">
-            <template #default="{ row }">
-              {{
-                row.kind === 'group'
-                  ? row.display_mode === 'buttons'
-                    ? '分类按钮'
-                    : '多级菜单'
-                  : row.open_mode === 'iframe'
-                    ? '内嵌'
-                    : '新窗口'
-              }}
-            </template>
-          </LinkTableColumn>
-          <ElTableColumn
-            prop="url"
-            label="页面地址"
-            min-width="230"
-            show-overflow-tooltip
-          />
-          <ElTableColumn prop="sort" label="排序" width="80" />
-          <LinkTableColumn label="状态" width="90">
-            <template #default="{ row }">
-              <StatusSwitch
-                :model-value="row.enabled"
-                :loading="toggling.has(String(row.id))"
-                :aria-label="`${row.title}启用状态`"
-                @change="toggle(row)"
-              />
-            </template>
-          </LinkTableColumn>
-          <LinkTableColumn
-            label="操作"
-            width="195"
-            :fixed="wideScreen ? 'right' : false"
-          >
-            <template #default="{ row }">
-              <ElButton link type="primary" @click="edit(row)">编辑</ElButton>
-              <ElButton
-                v-if="row.kind === 'group'"
-                link
-                type="primary"
-                @click="edit(undefined, row.id)"
-              >
-                添加子项
-              </ElButton>
-              <ElButton
-                link
-                type="danger"
-                :disabled="
-                  rows.some((item) => String(item.parent_id) === String(row.id))
-                "
-                @click="remove(row)"
-              >
-                删除
-              </ElButton>
-            </template>
-          </LinkTableColumn>
-          <template #empty>
-            <ElEmpty
-              :description="query || status ? '没有匹配的配置' : '暂无外部链接'"
-            />
-          </template>
-        </ElTable>
-      </div>
-    </div>
+          删除
+        </ElButton>
+      </template>
+      <template #table-title>
+        <ElAlert
+          v-if="failed"
+          title="外部链接配置加载失败，请确认插件已启用后重试"
+          type="error"
+          :closable="false"
+          show-icon
+        />
+      </template>
+    </Grid>
 
     <ElDialog
       v-model="dialog"
@@ -364,7 +374,7 @@ onMounted(load);
               v-model="form.kind"
               :disabled="
                 editingId !== undefined &&
-                rows.some((row) => String(row.parent_id) === String(editingId))
+                  rows.some((row) => String(row.parent_id) === String(editingId))
               "
             >
               <ElRadioButton value="group">分类</ElRadioButton><ElRadioButton value="link">链接</ElRadioButton>
@@ -455,7 +465,7 @@ onMounted(load);
       <template #footer>
         <ElButton :disabled="saving || iconUploading" @click="dialog = false">
           取消
-</ElButton><ElButton
+        </ElButton><ElButton
           type="primary"
           :loading="saving"
           :disabled="iconUploading"
@@ -469,60 +479,34 @@ onMounted(load);
 </template>
 
 <style scoped>
-.manager {
-  padding: 20px;
-  background: var(--el-bg-color);
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.search {
-  width: 260px;
-}
-.status-filter {
-  width: 130px;
-}
-.toolbar-actions {
-  display: flex;
-  gap: 10px;
-  margin-left: auto;
-}
-.table-scroll {
-  overflow-x: auto;
-}
 .name-cell {
   display: inline-flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   max-width: 100%;
   overflow-wrap: anywhere;
   white-space: normal;
 }
+
 .name-cell :deep(svg) {
   flex-shrink: 0;
 }
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 20px;
 }
+
 .full {
   grid-column: 1 / -1;
 }
+
 :global(.external-link-dialog) {
   max-width: calc(100vw - 24px);
 }
+
 @media (width <= 640px) {
-  .manager {
-    padding: 12px;
-  }
-  .search {
-    width: 100%;
-  }
   .form-grid {
     grid-template-columns: 1fr;
   }

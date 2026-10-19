@@ -33,8 +33,8 @@ export function useColumns(
       cellRender: {
         name: 'CellTag',
         options: [
-          { color: 'success', label: '在线', value: 0 },
-          { color: 'warning', label: '多端在线', value: 1 },
+          { color: 'info', label: '未连接', value: 0 },
+          { color: 'success', label: '在线', value: 1 },
         ],
       },
     },

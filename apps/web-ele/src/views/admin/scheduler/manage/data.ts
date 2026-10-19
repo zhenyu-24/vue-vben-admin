@@ -42,6 +42,7 @@ export function useColumns(
     },
     {
       field: 'schedule',
+      sortable: false,
       title: '触发策略',
       minWidth: 160,
       slots: { default: 'schedule', header: 'scheduleHeader' },
@@ -56,6 +57,7 @@ export function useColumns(
     { field: 'last_run_time', title: '最近执行', width: 168 },
     {
       field: 'execute',
+      sortable: false,
       title: '手动执行',
       width: 90,
       fixed: 'right',

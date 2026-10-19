@@ -1,6 +1,6 @@
 import type { RequestClientConfig } from '@vben/request';
 
-import type { SysId } from '#/types/api';
+import type { PaginationResult, SysId } from '#/types/api';
 
 import { sha256 } from '@noble/hashes/sha2.js';
 
@@ -34,6 +34,94 @@ export interface UploadFileResult {
   download_url: string;
   is_public: boolean;
   created_time?: null | string;
+}
+
+export interface ManagedFile extends UploadFileResult {
+  name: string;
+  url_path: string;
+  mime_type: null | string;
+  user_id: null | string;
+  username: null | string;
+  exists: boolean;
+  owner_uses_avatar: boolean;
+  storage_path?: string;
+}
+
+export interface FileListParams {
+  name?: string;
+  upload_type?: UploadType;
+  is_public?: boolean;
+  user_id?: string;
+  username?: string;
+  page?: number;
+  size?: number;
+  recursive?: boolean;
+  sort_by?: string;
+  sort_order?: string;
+}
+
+export function getManagedFilesApi(params: FileListParams) {
+  return requestClient.get<PaginationResult<ManagedFile>>('/v1/files/manage', {
+    params,
+  });
+}
+
+export function getResourceFoldersApi(isPublic: boolean) {
+  return requestClient.get<string[]>('/v1/files/manage/resource-folders', {
+    params: { is_public: isPublic },
+  });
+}
+
+export interface FileFolder {
+  name: string;
+  path: string;
+  count: number;
+}
+
+export function getFileBrowseApi(params: FileListParams & { path: string }) {
+  return requestClient.get<{
+    files: PaginationResult<ManagedFile>;
+    folders: FileFolder[];
+    path: string;
+  }>('/v1/files/manage/browse', { params });
+}
+
+export function replaceManagedFileApi(id: SysId, sourceId: SysId) {
+  return requestClient.put<ManagedFile>(
+    `/v1/files/manage/${encodeURIComponent(id)}/content`,
+    { source_file_id: sourceId },
+  );
+}
+
+export function getManagedFileApi(id: SysId) {
+  return requestClient.get<ManagedFile>(
+    `/v1/files/manage/${encodeURIComponent(id)}`,
+  );
+}
+
+export function deleteManagedFileApi(id: SysId) {
+  return requestClient.delete(`/v1/files/manage/${encodeURIComponent(id)}`);
+}
+
+export function deleteManagedFilesApi(ids: SysId[]) {
+  return requestClient.post<{
+    deleted: string[];
+    failed: { file_id: string; message: string }[];
+  }>('/v1/files/manage/batch-delete', { ids });
+}
+
+export function updateFileVisibilityApi(id: SysId, isPublic: boolean) {
+  return requestClient.patch<ManagedFile>(
+    `/v1/files/manage/${encodeURIComponent(id)}/visibility`,
+    { is_public: isPublic },
+  );
+}
+
+export function downloadManagedFileApi(id: SysId) {
+  return requestClient.download<Blob>(
+    `/v1/files/manage/${encodeURIComponent(id)}/download`,
+    { timeout: 0 },
+  );
 }
 
 interface UploadPrecheckResult {
@@ -198,11 +286,14 @@ export async function downloadFileToDiskApi(
   fileId: SysId,
   destination: FileSystemFileHandle,
   options: {
+    managed?: boolean;
     onProgress?: (downloaded: number, total: number) => void;
     signal?: AbortSignal;
   } = {},
 ) {
-  const url = `/v1/files/download/${encodeURIComponent(fileId)}`;
+  const url = options.managed
+    ? `/v1/files/manage/${encodeURIComponent(fileId)}/download`
+    : `/v1/files/download/${encodeURIComponent(fileId)}`;
   const { signal, onProgress } = options;
   const info = await fileRequest<{
     headers: Record<string, string>;
