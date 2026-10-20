@@ -416,6 +416,7 @@ async function upload() {
   let uploaded = false;
   try {
     const result = await uploadFileApi(chosenFile.value, {
+      retention_policy: replacement.value ? 'temporary' : 'persistent',
       upload_type: uploadType.value,
       target_path:
         !replacement.value && uploadType.value === 'resource'
@@ -651,6 +652,27 @@ onBeforeUnmount(() => {
           <ElDescriptionsItem label="上传者">
             {{ detail.username || '-' }}
           </ElDescriptionsItem>
+          <ElDescriptionsItem label="保留策略">
+            {{
+              detail.retention_policy === 'persistent' ? '长期保留' : '临时文件'
+            }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="业务引用">
+            <div
+              v-for="reference in detail.references"
+              :key="`${reference.business_type}:${reference.business_id}:${reference.field}`"
+            >
+              {{ reference.business_type }} / {{ reference.business_id }} /
+              {{ reference.field }}
+            </div>
+            <span v-if="!detail.references?.length">无</span>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem
+            v-if="detail.unreferenced_at"
+            label="无引用起始时间"
+          >
+            {{ detail.unreferenced_at }}
+          </ElDescriptionsItem>
           <ElDescriptionsItem label="存储路径">
             <span class="break-all">{{ detail.url_path }}</span>
           </ElDescriptionsItem>
@@ -705,9 +727,16 @@ onBeforeUnmount(() => {
           </ElSelect>
         </ElFormItem>
         <ElFormItem v-if="!replacement" label="公开访问">
-          <ElSwitch v-model="publicUpload" :disabled="uploading" @change="loadUploadFolders" />
+          <ElSwitch
+            v-model="publicUpload"
+            :disabled="uploading"
+            @change="loadUploadFolders"
+          />
         </ElFormItem>
-        <ElFormItem v-if="!replacement && uploadType === 'resource'" label="资源目录">
+        <ElFormItem
+          v-if="!replacement && uploadType === 'resource'"
+          label="资源目录"
+        >
           <ElSelect
             v-model="targetPath"
             filterable
@@ -717,7 +746,12 @@ onBeforeUnmount(() => {
             :disabled="uploading"
             placeholder="选择或输入相对目录"
           >
-            <ElOption v-for="folder in uploadFolders" :key="folder" :label="folder" :value="folder" />
+            <ElOption
+              v-for="folder in uploadFolders"
+              :key="folder"
+              :label="folder"
+              :value="folder"
+            />
           </ElSelect>
         </ElFormItem>
         <ElFormItem label="选择文件">

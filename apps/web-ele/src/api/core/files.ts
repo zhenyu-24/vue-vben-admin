@@ -16,6 +16,7 @@ export type UploadType =
   | 'video';
 
 export interface UploadFileOptions {
+  retention_policy?: 'persistent' | 'temporary';
   upload_type?: UploadType;
   target_path?: string;
   /** Omit to use the server default: public avatars, private for other types. */
@@ -37,6 +38,9 @@ export interface UploadFileResult {
 }
 
 export interface ManagedFile extends UploadFileResult {
+  retention_policy: 'persistent' | 'temporary';
+  unreferenced_at: null | string;
+  references: { business_id: string; business_type: string; field: string }[];
   name: string;
   url_path: string;
   mime_type: null | string;
