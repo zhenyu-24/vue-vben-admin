@@ -377,7 +377,7 @@ try {
     .locator('aside [role="menuitem"]')
     .allTextContents();
   let managerIndex = menuNames.findIndex((name) => name.trim() === '外部链接');
-  assert.equal(menuNames[managerIndex + 1]?.trim(), '文件资源中心');
+  assert.equal(menuNames[managerIndex + 1]?.trim(), '文件中心');
   assert.equal(
     await page.locator('aside [data-icon="lucide:folder"]').count(),
     0,
@@ -635,7 +635,7 @@ try {
   await page.locator('aside').getByText('插件管理', { exact: true }).waitFor();
   menuNames = await page.locator('aside [role="menuitem"]').allTextContents();
   managerIndex = menuNames.findIndex((name) => name.trim() === '外部链接');
-  assert.equal(menuNames[managerIndex + 1]?.trim(), '文件资源中心');
+  assert.equal(menuNames[managerIndex + 1]?.trim(), '文件中心');
   await page.screenshot({
     path: join(output, 'manager-backend-light.png'),
     fullPage: true,

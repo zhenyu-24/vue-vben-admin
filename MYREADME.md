@@ -372,9 +372,9 @@ import { SvgTestIcon } from '@vben/icons';
 
 浏览器回归脚本：`node apps/web-ele/test/e2e/registration-policy.mjs`，默认访问 `http://localhost:5777`，可用 `TEST_BASE_URL` 指定地址。脚本使用模拟接口，不会创建真实账户。
 
-### 文件资源中心
+### 文件中心
 
-系统管理 → 文件资源中心，地址 `/admin/files`，页面位于 `apps/web-ele/src/views/admin/files/index.vue`。
+系统管理 → 文件中心，地址 `/admin/files`，页面位于 `apps/web-ele/src/views/admin/files/index.vue`。
 沿用现有系统管理权限，仅超级管理员可见，前端和后端菜单模式均注册入口，后台另行验证管理权限。
 
 - 与用户管理、部门管理复用查询表单、VXE 表格和工具栏；外部链接页面采用相同布局。

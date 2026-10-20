@@ -7,6 +7,6 @@ export const fileResourcesRoute: RouteRecordRaw = {
   meta: {
     icon: 'lucide:folder-open',
     superuserOnly: true,
-    title: '文件资源中心',
+    title: '文件中心',
   },
 };

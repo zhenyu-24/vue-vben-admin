@@ -121,6 +121,7 @@ page.on('pageerror', (error) => errors.push(error.message));
 const row = (name) => page.locator('.vxe-table--main-wrapper .vxe-body--row').filter({ hasText: name }).first();
 try {
   await page.goto(`${base}/admin/files`);
+  await page.getByRole('menuitem', { name: '文件中心', exact: true }).waitFor();
   await row('document').getByRole('button', { name: 'document', exact: true }).click();
   await row('report.pdf').waitFor();
   assert.ok((await row('report.pdf').first().textContent()).includes('file_admin'));
