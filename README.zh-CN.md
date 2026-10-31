@@ -14,6 +14,27 @@
 
 **中文** | [English](./README.md) | [日本語](./README.ja-JP.md)
 
+## 前端二次开发版
+
+本仓库二次开发自 GitHub 项目
+[Vue Vben Admin](https://github.com/vbenjs/vue-vben-admin)，本项目的扩展页面位于
+`apps/web-ele`。以下保留原模板的介绍、安装命令、贡献指南和 GitHub 链接，便于对照上游文档。
+
+- 维护者：XiangZhenyu（[GitHub @zhenyu-24](https://github.com/zhenyu-24)）
+- 本仓库：[vue-vben-admin](https://github.com/zhenyu-24/vue-vben-admin)
+- 配套后端：[fastapi-architecture](https://github.com/zhenyu-24/fastapi-architecture)
+- 上游项目：[vbenjs/vue-vben-admin](https://github.com/vbenjs/vue-vben-admin)
+- 上游文档：[Vben Admin 文档](https://doc.vben.pro/)
+
+### 新增功能
+
+- 统一文件管理：分片与断点上传、文件中心和业务引用。
+- 任务调度：任务管理和执行记录页面。
+- 沙盒工作台：我的沙盒、SSH 终端、SFTP 文件传输和在线代码运行。
+- 系统管理：沙盒实例、命令审计和平台 API 启用/暂停。
+- 放弃部分官方插件功能，前端不提供对应入口；接口仍以后端为准。
+- 通过 `VITE_GLOB_API_URL` 连接配套后端，例如开发环境使用 `http://localhost:8000/api`；后端接口统一位于 `/api/v1` 下。
+
 ## 简介
 
 Vue Vben Admin 是 Vue Vben Admin 的升级版本。作为一个免费开源的中后台模板，它采用了最新的 Vue 3、Vite、TypeScript 等主流技术开发，开箱即用，可用于中后台前端开发，也适合学习参考。

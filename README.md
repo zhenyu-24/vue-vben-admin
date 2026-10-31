@@ -14,6 +14,28 @@
 
 **English** | [中文](./README.zh-CN.md) | [日本語](./README.ja-JP.md)
 
+## Extended Frontend Distribution
+
+This repository is a customized distribution of the upstream
+[Vue Vben Admin](https://github.com/vbenjs/vue-vben-admin) project. The `apps/web-ele`
+application contains the local extensions; the original template documentation and
+GitHub links are retained below.
+
+- Maintainer: XiangZhenyu ([GitHub @zhenyu-24](https://github.com/zhenyu-24))
+- This repository: [vue-vben-admin](https://github.com/zhenyu-24/vue-vben-admin)
+- Paired backend: [fastapi-architecture](https://github.com/zhenyu-24/fastapi-architecture)
+- Upstream project: [vbenjs/vue-vben-admin](https://github.com/vbenjs/vue-vben-admin)
+- Upstream documentation: [Vben Admin Docs](https://doc.vben.pro/)
+
+### Added in this distribution
+
+- Unified file management with uploads, resumable transfers, a file center and shared references.
+- Task scheduling screens for task management and execution records.
+- Sandbox workbench with personal sandbox management, SSH terminal, SFTP transfer and a web code runner.
+- Administrator sandbox instances, command audit and platform API controls under System Management.
+- Some official plugin features are intentionally omitted from the frontend; the paired backend remains the API source of truth.
+- API client for the paired backend through `VITE_GLOB_API_URL`, for example `http://localhost:8000/api`; backend routes use `/api/v1`.
+
 ## Introduction
 
 Vue Vben Admin is a free and open source middle and back-end template. Using the latest `vue3`, `vite`, `TypeScript` and other mainstream technology development, the out-of-the-box middle and back-end front-end solutions can also be used for learning reference.
