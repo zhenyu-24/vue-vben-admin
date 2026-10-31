@@ -102,6 +102,7 @@ watch(
   (items) => {
     values.value = createConfigValues(props.type, items);
     editing.value = false;
+    emit('dirtyChange', false);
   },
   { flush: 'sync' },
 );
@@ -167,7 +168,11 @@ async function saveConfig() {
       :closable="false"
       show-icon
     >
-      <VbenButton variant="link" class="h-8 gap-1 px-0" @click="fetchConfigList">
+      <VbenButton
+        variant="link"
+        class="h-8 gap-1 px-0"
+        @click="fetchConfigList"
+      >
         <IconifyIcon icon="lucide:rotate-cw" class="size-4" />
         重新加载
       </VbenButton>
@@ -294,11 +299,7 @@ async function saveConfig() {
         </VbenButton>
         <span v-if="dirty" class="unsaved-label">有未保存的修改</span>
       </template>
-      <VbenButton
-        v-else-if="canEdit"
-        class="gap-1.5"
-        @click="editing = true"
-      >
+      <VbenButton v-else-if="canEdit" class="gap-1.5" @click="editing = true">
         <IconifyIcon icon="lucide:pencil" class="size-4" />
         修改配置
       </VbenButton>

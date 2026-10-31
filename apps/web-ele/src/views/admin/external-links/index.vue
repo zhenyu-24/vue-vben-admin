@@ -7,6 +7,7 @@ import type {
   ExternalLinkRecord,
 } from '#/api/core/external-links';
 import type { SysId } from '#/types/api';
+import type { TableActionItem } from '#/views/admin/components/table-actions';
 
 import { computed, nextTick, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -43,6 +44,7 @@ import {
 } from '#/utils/external-links';
 import ExternalLinkIcon from '#/views/external-pages/icon.vue';
 
+import TableActions from '../components/table-actions.vue';
 import StatusSwitch from '../shared/status-switch.vue';
 import { useAdminGrid } from '../shared/useAdminGrid';
 import IconPicker from './icon-picker.vue';
@@ -199,6 +201,30 @@ async function toggle(row: ExternalLinkRecord) {
   }
 }
 
+function rowActions(row: ExternalLinkNode): TableActionItem[] {
+  const hasChildren = rows.value.some(
+    (item) => String(item.parent_id) === String(row.id),
+  );
+  const actions: TableActionItem[] = [
+    { key: 'edit', label: '编辑', onClick: () => edit(row) },
+  ];
+  if (row.kind === 'group') {
+    actions.push({
+      key: 'add',
+      label: '添加子项',
+      onClick: () => edit(undefined, row.id),
+    });
+  }
+  actions.push({
+    key: 'delete',
+    label: '删除',
+    type: 'danger',
+    disabled: hasChildren,
+    onClick: () => remove(row),
+  });
+  return actions;
+}
+
 const [Grid, gridApi] = useAdminGrid<ExternalLinkNode>({
   columns: () => [
     {
@@ -291,15 +317,13 @@ const [Grid, gridApi] = useAdminGrid<ExternalLinkNode>({
       </template>
       <template #name="{ row }">
         <span class="name-cell"><ExternalLinkIcon
-          :icon="row.icon"
-          class="size-4 shrink-0 object-contain"
-        />{{ row.title }}</span>
+            :icon="row.icon"
+            class="size-4 shrink-0 object-contain"
+          />{{ row.title }}</span>
       </template>
       <template #kind="{ row }">
         <ElTag :type="row.kind === 'group' ? 'info' : 'primary'">
-          {{
-            row.kind === 'group' ? '分类' : '链接'
-          }}
+          {{ row.kind === 'group' ? '分类' : '链接' }}
         </ElTag>
       </template>
       <template #mode="{ row }">
@@ -322,25 +346,7 @@ const [Grid, gridApi] = useAdminGrid<ExternalLinkNode>({
         />
       </template>
       <template #operation="{ row }">
-        <ElButton link type="primary" @click="edit(row)">编辑</ElButton>
-        <ElButton
-          v-if="row.kind === 'group'"
-          link
-          type="primary"
-          @click="edit(undefined, row.id)"
-        >
-          添加子项
-        </ElButton>
-        <ElButton
-          link
-          type="danger"
-          :disabled="
-            rows.some((item) => String(item.parent_id) === String(row.id))
-          "
-          @click="remove(row)"
-        >
-          删除
-        </ElButton>
+        <TableActions :actions="rowActions(row)" />
       </template>
       <template #table-title>
         <ElAlert
@@ -374,7 +380,7 @@ const [Grid, gridApi] = useAdminGrid<ExternalLinkNode>({
               v-model="form.kind"
               :disabled="
                 editingId !== undefined &&
-                  rows.some((row) => String(row.parent_id) === String(editingId))
+                rows.some((row) => String(row.parent_id) === String(editingId))
               "
             >
               <ElRadioButton value="group">分类</ElRadioButton><ElRadioButton value="link">链接</ElRadioButton>
@@ -465,7 +471,7 @@ const [Grid, gridApi] = useAdminGrid<ExternalLinkNode>({
       <template #footer>
         <ElButton :disabled="saving || iconUploading" @click="dialog = false">
           取消
-        </ElButton><ElButton
+</ElButton><ElButton
           type="primary"
           :loading="saving"
           :disabled="iconUploading"

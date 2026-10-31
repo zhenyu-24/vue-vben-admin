@@ -23,6 +23,9 @@
     "user": "User Management",
     "dept": "Department Management",
     "role": "Role Management",
+    "sandbox": "Sandbox Management",
+    "sandboxInstances": "Sandbox Instances",
+    "sandboxAudit": "Command Audit",
     "userPage": {
       "modal": {
         "add": "Add User",
@@ -85,9 +88,10 @@
     "plugin": "Plugin Management"
   },
   "online": {
-    "title": "Online Coding",
+    "title": "Sandbox Workbench",
     "terminal": "SSH Terminal",
     "sftp": "SFTP Transfer",
-    "code": "Online Code Run"
+    "code": "Online Code Run",
+    "mySandbox": "My Sandboxes"
   }
 }

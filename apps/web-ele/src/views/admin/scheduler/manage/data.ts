@@ -66,7 +66,9 @@ export function useColumns(
     {
       field: 'operation',
       title: '操作',
-      width: 160,
+      width: 210,
+      minWidth: 200,
+      maxWidth: 260,
       fixed: 'right',
       align: 'center',
       cellRender: {

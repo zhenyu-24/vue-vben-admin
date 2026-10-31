@@ -23,6 +23,9 @@
     "user": "用户管理",
     "dept": "部门管理",
     "role": "角色管理",
+    "sandbox": "沙盒管理",
+    "sandboxInstances": "沙盒实例",
+    "sandboxAudit": "命令审计",
     "userPage": {
       "modal": {
         "add": "添加用户",
@@ -85,9 +88,10 @@
     "plugin": "插件管理"
   },
   "online": {
-    "title": "在线编程",
+    "title": "沙盒工作台",
     "terminal": "SSH 终端",
     "sftp": "SFTP 文件传输",
-    "code": "在线代码运行"
+    "code": "在线代码运行",
+    "mySandbox": "我的沙盒"
   }
 }

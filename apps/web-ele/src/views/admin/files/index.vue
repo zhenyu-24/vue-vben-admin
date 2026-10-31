@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { TableActionItem } from '../components/table-actions';
+
 import type {
   FileFolder,
   FileListParams,
@@ -43,6 +45,7 @@ import {
   uploadFileApi,
 } from '#/api/core/files';
 
+import TableActions from '../components/table-actions.vue';
 import { useAdminGrid } from '../shared/useAdminGrid';
 
 defineOptions({ name: 'AdminFiles' });
@@ -133,7 +136,8 @@ const [Grid, gridApi] = useAdminGrid<Entry>({
     {
       field: 'operation',
       title: '操作',
-      width: 170,
+      minWidth: 240,
+      maxWidth: 320,
       slots: { default: 'operation' },
     },
   ],
@@ -279,6 +283,48 @@ async function changeVisibility(row: ManagedFile) {
     busy.value.delete(key);
   }
 }
+function fileRowActions(file: ManagedFile): TableActionItem[] {
+  const key = String(file.file_id);
+  const isBusy = busy.value.has(key);
+  return [
+    {
+      key: 'detail',
+      label: '详情',
+      onClick: () => showDetail(file),
+    },
+    {
+      key: 'download',
+      label: '下载',
+      disabled: !file.exists || isBusy,
+      onClick: () => download(file),
+    },
+    {
+      key: 'replace',
+      label: '替换',
+      disabled: isBusy,
+      onClick: () => openUpload(file),
+    },
+    {
+      key: 'delete',
+      label: '删除',
+      type: 'danger',
+      title: file.owner_uses_avatar ? '正在使用的头像不能删除' : '永久删除',
+      disabled: file.owner_uses_avatar || isBusy,
+      onClick: () => remove(file),
+    },
+  ];
+}
+
+function folderRowActions(folder: FileFolder): TableActionItem[] {
+  return [
+    {
+      key: 'open',
+      label: '打开',
+      onClick: () => navigate(folder.path),
+    },
+  ];
+}
+
 function navigate(next: string) {
   path.value = next;
   void gridApi.reload();
@@ -574,49 +620,14 @@ onBeforeUnmount(() => {
         </ElTag>
       </template>
       <template #operation="{ row }">
-        <div v-if="row.file" class="flex items-center justify-center gap-1">
-          <VbenIconButton
-            tooltip="详情"
-            aria-label="文件详情"
-            @click="showDetail(row.file)"
-          >
-            <IconifyIcon icon="lucide:info" class="size-4" />
-          </VbenIconButton>
-          <VbenIconButton
-            tooltip="下载"
-            aria-label="下载文件"
-            :disabled="!row.file.exists || busy.has(String(row.file.file_id))"
-            @click="download(row.file)"
-          >
-            <IconifyIcon icon="lucide:download" class="size-4" />
-          </VbenIconButton>
-          <VbenIconButton
-            tooltip="替换文件"
-            aria-label="替换文件"
-            :disabled="busy.has(String(row.file.file_id))"
-            @click="openUpload(row.file)"
-          >
-            <IconifyIcon icon="lucide:replace" class="size-4" />
-          </VbenIconButton>
-          <VbenIconButton
-            :tooltip="
-              row.file.owner_uses_avatar ? '正在使用的头像不能删除' : '永久删除'
-            "
-            aria-label="删除文件"
-            :disabled="
-              row.file.owner_uses_avatar || busy.has(String(row.file.file_id))
-            "
-            @click="remove(row.file)"
-          >
-            <IconifyIcon
-              icon="lucide:trash-2"
-              class="size-4 text-destructive"
-            />
-          </VbenIconButton>
-        </div>
-        <ElButton v-else link type="primary" @click="navigate(row.folder.path)">
-          打开
-        </ElButton>
+        <TableActions
+          v-if="row.file"
+          :actions="fileRowActions(row.file)"
+        />
+        <TableActions
+          v-else-if="row.folder"
+          :actions="folderRowActions(row.folder)"
+        />
       </template>
     </Grid>
     <ElDialog

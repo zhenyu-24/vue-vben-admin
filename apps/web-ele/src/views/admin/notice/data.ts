@@ -88,7 +88,9 @@ export function useColumns(
       title: '操作',
       align: 'center',
       fixed: 'right',
-      width: 150,
+      width: 210,
+      minWidth: 200,
+      maxWidth: 260,
       cellRender: {
         attrs: {
           nameField: 'title',

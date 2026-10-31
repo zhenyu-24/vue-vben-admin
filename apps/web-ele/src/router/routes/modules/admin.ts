@@ -150,6 +150,35 @@ const routes: RouteRecordRaw[] = [
           },
         ],
       },
+      {
+        meta: {
+          icon: 'lucide:boxes',
+          title: $t('page.admin.sandbox'),
+        },
+        name: 'AdminSandbox',
+        path: '/admin/sandbox',
+        redirect: '/admin/sandbox/instances',
+        children: [
+          {
+            name: 'AdminSandboxInstances',
+            path: '/admin/sandbox/instances',
+            component: () => import('#/views/admin/sandbox/index.vue'),
+            meta: {
+              icon: 'lucide:boxes',
+              title: $t('page.admin.sandboxInstances'),
+            },
+          },
+          {
+            name: 'AdminSandboxAudit',
+            path: '/admin/sandbox/audit',
+            component: () => import('#/views/admin/sandbox/audit/index.vue'),
+            meta: {
+              icon: 'lucide:scroll-text',
+              title: $t('page.admin.sandboxAudit'),
+            },
+          },
+        ],
+      },
       externalLinksAdminRoute,
       fileResourcesRoute,
       {

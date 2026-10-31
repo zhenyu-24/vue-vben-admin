@@ -8,7 +8,7 @@ const routes: RouteRecordRaw[] = [
     path: '/online',
     redirect: '/online/terminal',
     meta: {
-      icon: 'lucide:square-terminal',
+      icon: 'lucide:boxes',
       order: 30,
       title: $t('page.online.title'),
     },
@@ -38,6 +38,15 @@ const routes: RouteRecordRaw[] = [
         meta: {
           icon: 'lucide:code-2',
           title: $t('page.online.code'),
+        },
+      },
+      {
+        name: 'OnlineMySandbox',
+        path: '/online/my-sandbox',
+        component: () => import('#/views/online/my-sandbox/index.vue'),
+        meta: {
+          icon: 'lucide:box',
+          title: $t('page.online.mySandbox'),
         },
       },
     ],

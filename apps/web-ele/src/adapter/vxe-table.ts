@@ -2,9 +2,11 @@ import type { VxeTableGridOptions } from '@vben/plugins/vxe-table';
 
 import type { ComponentPropsMap, ComponentType } from './component';
 
+import type { TableActionItem } from '#/views/admin/components/table-actions';
+
 import { h } from 'vue';
 
-import { confirm, VbenButton, VbenTableAction } from '@vben/common-ui';
+import { confirm, VbenButton } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 import {
   setupVbenVxeTable,
@@ -13,6 +15,7 @@ import {
 
 import { ElImage, ElTag } from 'element-plus';
 
+import TableActions from '#/views/admin/components/table-actions.vue';
 import StatusSwitch from '#/views/admin/shared/status-switch.vue';
 
 import { useVbenForm } from './form';
@@ -139,24 +142,7 @@ setupVbenVxeTable({
 
     // 表格操作按钮渲染器
     vxeUI.renderer.add('CellOperation', {
-      renderTableDefault({ attrs, options }, { column, row }) {
-        // 列对齐方式
-        let justify: string;
-        switch (column.align) {
-          case 'right': {
-            justify = 'end';
-            break;
-          }
-          case 'left': {
-            justify = 'start';
-            break;
-          }
-          default: {
-            justify = 'center';
-            break;
-          }
-        }
-
+      renderTableDefault({ attrs, options }, { row }) {
         const defaultTextMap: Record<string, string> = {
           edit: '修改',
           delete: '删除',
@@ -179,15 +165,13 @@ setupVbenVxeTable({
             : !!opt.disabled;
         }
 
-        const actions = operations.map((opt: any) => {
-          const { code, text, disabled: _disabled, ...buttonProps } = opt;
+        const actions: TableActionItem[] = operations.map((opt: any) => {
+          const { code, text } = opt;
           return {
-            ...buttonProps,
-            text,
-            size: 'sm' as const,
-            variant: 'link' as const,
-            class: 'h-8 p-0 text-base font-normal',
-            danger: code === 'delete',
+            key: code,
+            label: text,
+            title: text,
+            type: code === 'delete' ? 'danger' : 'primary',
             disabled: resolveDisabled(opt),
             onClick: async () => {
               if (code === 'delete') {
@@ -208,11 +192,7 @@ setupVbenVxeTable({
           };
         });
 
-        return h(VbenTableAction, {
-          actions,
-          align: justify as 'center' | 'end' | 'start',
-          class: 'gap-4 whitespace-nowrap',
-        });
+        return h(TableActions, { actions });
       },
     });
 

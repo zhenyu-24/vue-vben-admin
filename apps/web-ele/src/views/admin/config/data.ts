@@ -1,6 +1,6 @@
 import type { ConfigResult, UpdateConfigParam } from '#/api';
 
-export type ConfigType = 'EMAIL' | 'LOGIN' | 'USER_SECURITY';
+export type ConfigType = 'EMAIL' | 'LOGIN' | 'SANDBOX' | 'USER_SECURITY';
 export type ConfigValues = Record<string, number | string | undefined>;
 
 interface ConfigField {
@@ -131,6 +131,107 @@ export const configDefinitions: Record<ConfigType, ConfigDefinition> = {
       },
     ],
   },
+  SANDBOX: {
+    title: '沙盒配置',
+    description: '管理 OpenSandbox 服务连接、全局镜像、默认配额和运行限制。',
+    statusKey: 'OPEN_SANDBOX_CONFIG_STATUS',
+    sections: [
+      {
+        title: '服务连接',
+        description:
+          '填写后端可访问的 OpenSandbox Server 地址，保存后立即生效。',
+        fields: [
+          {
+            key: 'OPEN_SANDBOX_URL',
+            label: '服务器地址',
+            kind: 'text',
+            description:
+              '例如 http://127.0.0.1:8080；WSL2 中运行且已开启端口转发时同样使用本机地址。API Key 仍在后端 .env 中配置。',
+          },
+        ],
+      },
+      {
+        title: '镜像与配额',
+        description: '该配额为全局配置，所有普通用户统一使用。',
+        fields: [
+          {
+            key: 'OPEN_SANDBOX_IMAGE',
+            label: '默认沙盒镜像',
+            kind: 'text',
+            description: '新建沙盒未指定自定义镜像时使用。',
+          },
+          {
+            key: 'OPEN_SANDBOX_MAX_SANDBOXES_PER_USER',
+            label: '每用户最大沙盒数',
+            kind: 'number',
+            min: 1,
+            max: 100,
+            unit: '个',
+          },
+        ],
+      },
+      {
+        title: '运行策略',
+        description: '控制沙盒资源、空闲暂停和自动回收策略。',
+        fields: [
+          {
+            key: 'OPEN_SANDBOX_IDLE_TIMEOUT_SECONDS',
+            label: '空闲暂停时间',
+            kind: 'number',
+            min: 60,
+            max: 86_400,
+            unit: '秒',
+            description: '超过该时间没有活动时自动暂停沙盒。',
+          },
+          {
+            key: 'OPEN_SANDBOX_AUTO_PAUSE_ENABLED',
+            label: '空闲自动暂停',
+            kind: 'switch',
+            description: '开启后按空闲时间自动暂停，不会删除容器。',
+          },
+          {
+            key: 'OPEN_SANDBOX_RESOURCE_CPU',
+            label: '默认 CPU 限制',
+            kind: 'text',
+            description: '例如 1 或 2。',
+          },
+          {
+            key: 'OPEN_SANDBOX_RESOURCE_MEMORY',
+            label: '默认内存限制',
+            kind: 'text',
+            description: '例如 2Gi 或 4Gi。',
+          },
+        ],
+      },
+      {
+        title: '输出与文件限制',
+        description: '限制命令输出、上传文件和在线文本预览的数据大小。',
+        fields: [
+          {
+            key: 'OPEN_SANDBOX_MAX_OUTPUT_CHARS',
+            label: '命令输出最大字符数',
+            kind: 'number',
+            min: 1024,
+            unit: '字符',
+          },
+          {
+            key: 'OPEN_SANDBOX_UPLOAD_LIMIT_BYTES',
+            label: '单文件上传限制',
+            kind: 'number',
+            min: 1,
+            unit: '字节',
+          },
+          {
+            key: 'OPEN_SANDBOX_FILE_TEXT_LIMIT_BYTES',
+            label: '文本预览限制',
+            kind: 'number',
+            min: 1,
+            unit: '字节',
+          },
+        ],
+      },
+    ],
+  },
   EMAIL: {
     title: '邮件配置',
     description: '设置系统通知与邮箱验证使用的 SMTP 服务。',
@@ -211,16 +312,23 @@ export function createConfigValues(
   type: ConfigType,
   configs: ConfigResult[],
 ): ConfigValues {
+  const fields = getConfigFields(type);
   const numericKeys = new Set(
-    getConfigFields(type)
-      .filter((field) => field.kind === 'number')
-      .map((field) => field.key),
+    fields.filter((field) => field.kind === 'number').map((field) => field.key),
+  );
+  const switchKeys = new Set(
+    fields.filter((field) => field.kind === 'switch').map((field) => field.key),
   );
   return Object.fromEntries(
-    configs.map(({ key, value }) => [
-      key,
-      numericKeys.has(key) && value.trim() !== '' ? Number(value) : value,
-    ]),
+    configs.map(({ key, value }) => {
+      if (numericKeys.has(key) && value.trim() !== '') {
+        return [key, Number(value)];
+      }
+      if (switchKeys.has(key)) {
+        return [key, value.trim().toLowerCase()];
+      }
+      return [key, value];
+    }),
   );
 }
 
@@ -281,6 +389,12 @@ export function validateConfigField(
     if (field.max !== undefined && number > field.max) {
       return `不能大于 ${field.max}`;
     }
+  }
+  if (
+    key === 'OPEN_SANDBOX_URL' &&
+    !/^https?:\/\/\S+$/i.test(String(value).trim())
+  ) {
+    return '请输入以 http:// 或 https:// 开头的地址';
   }
   if (
     key === 'USER_PASSWORD_MAX_LENGTH' &&

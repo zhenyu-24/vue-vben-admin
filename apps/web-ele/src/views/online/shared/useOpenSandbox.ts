@@ -7,10 +7,13 @@ import { ElMessage } from 'element-plus';
 
 import {
   createSandboxApi,
+  deleteSandboxApi,
   getOverviewApi,
   getSandboxApi,
   getSandboxesApi,
   pauseSandboxApi,
+  renameSandboxApi,
+  restartSandboxApi,
   resumeSandboxApi,
 } from '#/api/opensandbox';
 
@@ -26,16 +29,25 @@ let loaded = false;
 let loadingPromise: null | Promise<void> = null;
 
 const selectedSandbox = computed(
-  () => sandboxes.value.find((item) => item.sandbox_id === selectedId.value) || null,
+  () =>
+    sandboxes.value.find((item) => item.sandbox_id === selectedId.value) ||
+    null,
 );
 const service = computed(() => overview.value?.service);
 const workspaceRoot = computed(
-  () => selectedSandbox.value?.workspace_root || overview.value?.workspace_root || '/workspace',
+  () =>
+    selectedSandbox.value?.workspace_root ||
+    overview.value?.workspace_root ||
+    '/workspace',
 );
 
 function setSelected(id: string) {
   selectedId.value = id;
-  if (id) localStorage.setItem('vben:opensandbox:selected', id);
+  if (id) {
+    localStorage.setItem('vben:opensandbox:selected', id);
+  } else {
+    localStorage.removeItem('vben:opensandbox:selected');
+  }
 }
 
 async function load(force = false) {
@@ -46,7 +58,10 @@ async function load(force = false) {
     try {
       overview.value = await getOverviewApi();
       sandboxes.value = await getSandboxesApi();
-      if (queryId.value && !sandboxes.value.some((item) => item.sandbox_id === queryId.value)) {
+      if (
+        queryId.value &&
+        !sandboxes.value.some((item) => item.sandbox_id === queryId.value)
+      ) {
         try {
           const item = await getSandboxApi(queryId.value);
           sandboxes.value.push(item);
@@ -56,7 +71,8 @@ async function load(force = false) {
       }
       const saved = localStorage.getItem('vben:opensandbox:selected');
       setSelected(
-        (queryId.value && sandboxes.value.some((item) => item.sandbox_id === queryId.value)
+        (queryId.value &&
+        sandboxes.value.some((item) => item.sandbox_id === queryId.value)
           ? queryId.value
           : saved && sandboxes.value.some((item) => item.sandbox_id === saved)
             ? saved
@@ -80,7 +96,7 @@ async function refresh() {
 async function create(name?: string) {
   if (!service.value?.available) {
     ElMessage.warning('OpenSandbox 服务不可用');
-    return;
+    return false;
   }
   actionLoading.value = true;
   try {
@@ -90,6 +106,36 @@ async function create(name?: string) {
     sandboxes.value.unshift(item);
     setSelected(item.sandbox_id);
     ElMessage.success('沙盒创建成功');
+    return true;
+  } catch (error: any) {
+    ElMessage.error(error?.message || String(error));
+    return false;
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function action(
+  kind: 'pause' | 'restart' | 'resume',
+  sandboxId?: string,
+) {
+  const targetId = sandboxId || selectedSandbox.value?.sandbox_id;
+  if (!targetId) return;
+  actionLoading.value = true;
+  try {
+    await (kind === 'pause'
+      ? pauseSandboxApi(targetId)
+      : kind === 'restart'
+        ? restartSandboxApi(targetId)
+        : resumeSandboxApi(targetId));
+    await refresh();
+    ElMessage.success(
+      kind === 'pause'
+        ? '沙盒已停止'
+        : kind === 'restart'
+          ? '沙盒已重启'
+          : '沙盒已启动',
+    );
   } catch (error: any) {
     ElMessage.error(error?.message || String(error));
   } finally {
@@ -97,17 +143,41 @@ async function create(name?: string) {
   }
 }
 
-async function action(kind: 'pause' | 'resume') {
-  if (!selectedSandbox.value) return;
+async function rename(sandboxId: string, name: string) {
   actionLoading.value = true;
   try {
-    await (kind === 'pause'
-      ? pauseSandboxApi(selectedSandbox.value.sandbox_id)
-      : resumeSandboxApi(selectedSandbox.value.sandbox_id));
-    await refresh();
-    ElMessage.success(kind === 'pause' ? '沙盒已停止' : '沙盒已启动');
+    const item = await renameSandboxApi(sandboxId, name);
+    const current = sandboxes.value.find(
+      (sandbox) => sandbox.sandbox_id === sandboxId,
+    );
+    if (current) current.name = item.name;
+    ElMessage.success('沙盒已重命名');
+    return true;
   } catch (error: any) {
     ElMessage.error(error?.message || String(error));
+    return false;
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function remove(sandboxId?: string) {
+  const targetId = sandboxId || selectedSandbox.value?.sandbox_id;
+  if (!targetId) return false;
+  actionLoading.value = true;
+  try {
+    await deleteSandboxApi(targetId);
+    sandboxes.value = sandboxes.value.filter(
+      (item) => item.sandbox_id !== targetId,
+    );
+    if (selectedId.value === targetId) {
+      setSelected(sandboxes.value[0]?.sandbox_id || '');
+    }
+    ElMessage.success('沙盒已删除');
+    return true;
+  } catch (error: any) {
+    ElMessage.error(error?.message || String(error));
+    return false;
   } finally {
     actionLoading.value = false;
   }
@@ -155,6 +225,8 @@ export function useOpenSandbox() {
     loading,
     overview,
     refresh,
+    remove,
+    rename,
     selectedId,
     selectedSandbox,
     service,

@@ -165,7 +165,9 @@ export function useColumns(
       title: $t('page.admin.userPage.column.operation'),
       align: 'center',
       fixed: 'right',
-      width: 180,
+      width: 220,
+      minWidth: 200,
+      maxWidth: 280,
       showOverflow: false,
       cellRender: {
         attrs: {

@@ -46,7 +46,15 @@ interface TransferRecord {
   time: string;
 }
 
-const { initialize, loading, selectedId, selectedSandbox, workspaceRoot } = useOpenSandbox();
+const {
+  initialize,
+  loading,
+  selectedId,
+  selectedSandbox,
+  service,
+  workspaceRoot,
+} = useOpenSandbox();
+const serviceAvailable = computed(() => service.value?.available ?? false);
 const currentPath = ref('/workspace');
 const entries = ref<FileEntry[]>([]);
 const entriesLoading = ref(false);
@@ -59,7 +67,12 @@ const parentPath = computed(() => {
 });
 const isAtRoot = computed(() => currentPath.value === workspaceRoot.value || currentPath.value === '/');
 
-onMounted(initialize);
+onMounted(async () => {
+  await initialize();
+  if (selectedId.value && serviceAvailable.value) {
+    await loadEntries();
+  }
+});
 
 watch(
   selectedId,
@@ -73,6 +86,10 @@ watch(
 
 async function loadEntries() {
   if (!selectedId.value) return;
+  if (!serviceAvailable.value) {
+    entries.value = [];
+    return;
+  }
   entriesLoading.value = true;
   try {
     entries.value = await listFilesApi(selectedId.value, currentPath.value);
@@ -119,6 +136,10 @@ function updateTransfer(item: TransferRecord, patch: Partial<TransferRecord>) {
 
 async function beforeUpload(file: File) {
   if (!selectedId.value) return false;
+  if (!serviceAvailable.value) {
+    ElMessage.warning('沙盒 API 已暂停，请联系管理员启用');
+    return false;
+  }
   const item = addTransfer({
     direction: 'upload',
     localPath: file.name,
@@ -267,14 +288,14 @@ function statusLabel(value: TransferRecord['status']) {
                 远程文件
               </div>
               <div class="panel-actions">
-                <el-button size="small" :icon="ArrowLeft" :disabled="isAtRoot" @click="goUp">上级</el-button>
-                <el-button size="small" @click="createFolder">新建文件夹</el-button>
-                <el-button size="small" @click="createFile">新建文件</el-button>
-                <el-button size="small" :icon="Refresh" :loading="entriesLoading" @click="loadEntries">
+                <el-button size="small" :icon="ArrowLeft" :disabled="isAtRoot || !serviceAvailable" @click="goUp">上级</el-button>
+                <el-button size="small" :disabled="!serviceAvailable" @click="createFolder">新建文件夹</el-button>
+                <el-button size="small" :disabled="!serviceAvailable" @click="createFile">新建文件</el-button>
+                <el-button size="small" :icon="Refresh" :loading="entriesLoading" :disabled="!serviceAvailable" @click="loadEntries">
                   刷新
                 </el-button>
-                <el-upload :before-upload="beforeUpload" :show-file-list="false" :disabled="!selectedId">
-                  <el-button type="primary" size="small" :icon="UploadFilled">上传文件</el-button>
+                <el-upload :before-upload="beforeUpload" :show-file-list="false" :disabled="!selectedId || !serviceAvailable">
+                  <el-button type="primary" size="small" :icon="UploadFilled" :disabled="!serviceAvailable">上传文件</el-button>
                 </el-upload>
               </div>
             </div>
@@ -283,7 +304,7 @@ function statusLabel(value: TransferRecord['status']) {
           <div class="path-bar">
             <span class="path-prefix">远程路径</span>
             <el-input v-model="currentPath" size="small" @keyup.enter="goPath" />
-            <el-button size="small" @click="goPath">打开</el-button>
+            <el-button size="small" :disabled="!serviceAvailable" @click="goPath">打开</el-button>
           </div>
 
           <div class="file-list">
@@ -304,11 +325,11 @@ function statusLabel(value: TransferRecord['status']) {
               <span class="cell-muted">{{ entry.type === 'directory' ? '目录' : '文件' }}</span>
               <span class="cell-muted">{{ entry.type === 'directory' ? '-' : formatSize(entry.size) }}</span>
               <div class="row-actions">
-                <el-button v-if="entry.type === 'file'" size="small" text type="primary" :icon="Download" @click="download(entry)">
+                <el-button v-if="entry.type === 'file'" size="small" text type="primary" :icon="Download" :disabled="!serviceAvailable" @click="download(entry)">
                   下载
                 </el-button>
-                <el-button size="small" text @click="renameEntry(entry)">重命名</el-button>
-                <el-button size="small" text type="danger" @click="removeEntry(entry)">删除</el-button>
+                <el-button size="small" text :disabled="!serviceAvailable" @click="renameEntry(entry)">重命名</el-button>
+                <el-button size="small" text type="danger" :disabled="!serviceAvailable" @click="removeEntry(entry)">删除</el-button>
               </div>
             </div>
             <el-empty v-if="!entriesLoading && entries.length === 0" description="目录为空" />

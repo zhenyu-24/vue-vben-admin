@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 
-import { Plus, Refresh, VideoPause, VideoPlay } from '@element-plus/icons-vue';
-import { ElAlert, ElButton, ElDialog, ElInput, ElMessage, ElOption, ElSelect, ElTag } from 'element-plus';
+import { Refresh } from '@element-plus/icons-vue';
+import {
+  ElAlert,
+  ElButton,
+  ElMessage,
+  ElOption,
+  ElSelect,
+  ElTag,
+} from 'element-plus';
 
 import { useOpenSandbox } from '../shared/useOpenSandbox';
 
 const {
-  action,
-  actionLoading,
-  create,
   initialize,
   loading,
   refresh,
@@ -21,62 +25,53 @@ const {
   sandboxes,
 } = useOpenSandbox();
 
-const createOpen = ref(false);
-const createName = ref('');
+const serviceAlertTitle = computed(() => {
+  if (!service.value?.configured) return '尚未配置 OpenSandbox 服务';
+  if (service.value.api_enabled === false) {
+    return '沙盒 API 已被管理员暂停，OpenSandbox 进程仍在运行。';
+  }
+  return '无法连接 OpenSandbox 服务，请稍后重试或联系管理员。';
+});
 
 onMounted(initialize);
-
-async function submitCreate() {
-  await create(createName.value);
-  createOpen.value = false;
-  createName.value = '';
-}
 
 async function testConnection() {
   await refresh();
   ElMessage.success('已刷新服务状态');
 }
-
 </script>
 
 <template>
   <div class="osb-toolbar">
     <div class="osb-toolbar-main">
       <div class="osb-title-wrap">
-        <h2 class="osb-title">在线编程</h2>
+        <h2 class="osb-title">沙盒工作台</h2>
         <span class="osb-subtitle">OpenSandbox 隔离开发环境</span>
       </div>
       <div class="osb-toolbar-actions">
         <el-select
-          v-if="sandboxes.length > 0"
           v-model="selectedId"
           class="osb-select"
+          :disabled="sandboxes.length === 0"
           :loading="loading"
-          placeholder="选择沙盒"
+          placeholder="暂无可用沙盒"
         >
           <el-option
             v-for="item in sandboxes"
             :key="item.sandbox_id"
-            :label="`${item.name} · ${stateLabel(item.state)}`"
+            :label="item.name + ' · ' + stateLabel(item.state)"
             :value="item.sandbox_id"
           />
         </el-select>
-        <el-tag v-if="selectedSandbox" :type="stateType(selectedSandbox.state)" effect="light">
+        <el-tag
+          v-if="selectedSandbox"
+          :type="stateType(selectedSandbox.state)"
+          effect="light"
+        >
           {{ stateLabel(selectedSandbox.state) }}
         </el-tag>
-        <el-button
-          :icon="selectedSandbox?.state === 'Paused' ? VideoPlay : VideoPause"
-          :loading="actionLoading"
-          :disabled="!selectedSandbox"
-          @click="action(selectedSandbox?.state === 'Paused' ? 'resume' : 'pause')"
-        >
-          {{ selectedSandbox?.state === 'Paused' ? '启动' : '停止' }}
-        </el-button>
         <el-button :icon="Refresh" :loading="loading" @click="testConnection">
           刷新
-        </el-button>
-        <el-button type="primary" :icon="Plus" :disabled="!service?.available" @click="createOpen = true">
-          创建沙盒
         </el-button>
       </div>
     </div>
@@ -84,7 +79,7 @@ async function testConnection() {
     <el-alert
       v-if="service && (!service.configured || !service.available)"
       class="mt-2"
-      :title="service.message"
+      :title="serviceAlertTitle"
       :type="service.configured ? 'warning' : 'info'"
       show-icon
       :closable="false"
@@ -94,14 +89,6 @@ async function testConnection() {
       {{ service.available ? '沙盒服务可用' : '沙盒服务不可用' }}
       <span v-if="service.version">v{{ service.version }}</span>
     </div>
-
-    <el-dialog v-model="createOpen" title="创建沙盒" width="440px">
-      <el-input v-model="createName" placeholder="沙盒名称，例如 my-python" clearable />
-      <template #footer>
-        <el-button @click="createOpen = false">取消</el-button>
-        <el-button type="primary" :loading="actionLoading" @click="submitCreate">创建</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -165,5 +152,4 @@ async function testConnection() {
 .osb-service-dot.offline {
   background: var(--el-color-danger);
 }
-
 </style>

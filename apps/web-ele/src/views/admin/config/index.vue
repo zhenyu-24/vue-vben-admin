@@ -6,7 +6,7 @@ import { onBeforeRouteLeave } from 'vue-router';
 
 import { confirm, Page } from '@vben/common-ui';
 
-import { CircleCheck, Lock, Message } from '@element-plus/icons-vue';
+import { Box, CircleCheck, Lock, Message } from '@element-plus/icons-vue';
 import { useMediaQuery } from '@vueuse/core';
 import { ElIcon, ElTabPane, ElTabs } from 'element-plus';
 
@@ -21,6 +21,7 @@ const tabs = [
   { type: 'USER_SECURITY', label: '安全配置', icon: CircleCheck },
   { type: 'LOGIN', label: '登录配置', icon: Lock },
   { type: 'EMAIL', label: '邮件配置', icon: Message },
+  { type: 'SANDBOX', label: '沙盒配置', icon: Box },
 ] as const;
 
 onBeforeRouteLeave(async () => {

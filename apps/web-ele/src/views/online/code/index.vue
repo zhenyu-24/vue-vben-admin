@@ -63,7 +63,15 @@ const samples: Record<string, string> = {
   sql: `select 'Hello OpenSandbox' as message;\n`,
 };
 
-const { initialize, loading, selectedId, selectedSandbox, workspaceRoot } = useOpenSandbox();
+const {
+  initialize,
+  loading,
+  selectedId,
+  selectedSandbox,
+  service,
+  workspaceRoot,
+} = useOpenSandbox();
+const serviceAvailable = computed(() => service.value?.available ?? false);
 const { isDark } = usePreferences();
 const language = ref('python');
 const filename = ref('main.py');
@@ -112,6 +120,10 @@ watch(language, (value, oldValue) => {
 
 async function save() {
   if (!selectedId.value) return false;
+  if (!serviceAvailable.value) {
+    ElMessage.warning('沙盒 API 已暂停，请联系管理员启用');
+    return false;
+  }
   saving.value = true;
   try {
     await writeFileApi(selectedId.value, { content: code.value, path: fullPath.value });
@@ -135,6 +147,10 @@ function detectLanguage(path: string) {
 
 async function openFileFromTree(path: string) {
   if (!selectedId.value) return;
+  if (!serviceAvailable.value) {
+    ElMessage.warning('沙盒 API 已暂停，请联系管理员启用');
+    return;
+  }
   try {
     const result = await readFileApi(selectedId.value, path);
     if (result.is_binary) {
@@ -209,6 +225,10 @@ function buildCommand(compileOnly: boolean): null | string {
 
 async function run(compileOnly = false) {
   if (!selectedId.value || running.value) return;
+  if (!serviceAvailable.value) {
+    ElMessage.warning('沙盒 API 已暂停，请联系管理员启用');
+    return;
+  }
   const command = buildCommand(compileOnly);
   if (!command) {
     ElMessage.info('该语言没有单独的编译步骤，请直接运行');
@@ -269,9 +289,9 @@ function clearOutput() {
           <div class="code-actions">
             <el-button size="small" :icon="RefreshLeft" @click="loadFile">读取</el-button>
             <el-button size="small" :icon="DocumentCopy" @click="copyCode">复制</el-button>
-            <el-button size="small" :loading="saving" :icon="Select" @click="save">保存</el-button>
-            <el-button size="small" :loading="running" @click="run(true)">编译</el-button>
-            <el-button type="primary" size="small" :loading="running" :icon="Promotion" @click="run(false)">
+            <el-button size="small" :loading="saving" :icon="Select" :disabled="!serviceAvailable" @click="save">保存</el-button>
+            <el-button size="small" :loading="running" :disabled="!serviceAvailable" @click="run(true)">编译</el-button>
+            <el-button type="primary" size="small" :loading="running" :icon="Promotion" :disabled="!serviceAvailable" @click="run(false)">
               运行
             </el-button>
           </div>
