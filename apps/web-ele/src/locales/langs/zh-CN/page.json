@@ -83,5 +83,11 @@
     "notice": "通知公告",
     "config": "参数配置",
     "plugin": "插件管理"
+  },
+  "online": {
+    "title": "在线编程",
+    "terminal": "SSH 终端",
+    "sftp": "SFTP 文件传输",
+    "code": "在线代码运行"
   }
 }

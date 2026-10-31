@@ -83,5 +83,11 @@
     "notice": "Notice",
     "config": "Parameter Config",
     "plugin": "Plugin Management"
+  },
+  "online": {
+    "title": "Online Coding",
+    "terminal": "SSH Terminal",
+    "sftp": "SFTP Transfer",
+    "code": "Online Code Run"
   }
 }
