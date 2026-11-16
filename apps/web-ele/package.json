@@ -51,10 +51,10 @@
     "dayjs": "catalog:",
     "dompurify": "^3.4.17",
     "element-plus": "catalog:",
-    "marked": "^18.0.6",
+    "marked": "^18.2.0",
     "pinia": "catalog:",
     "vue": "catalog:",
-    "vue-codemirror6": "^1.7.0",
+    "vue-codemirror6": "^1.8.0",
     "vue-router": "catalog:"
   },
   "devDependencies": {
